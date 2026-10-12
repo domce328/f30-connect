@@ -20,38 +20,34 @@
   <div id="wallpaperLayer" class="wallpaper-layer" aria-hidden="true"></div>
   <div id="app">
     <header class="topbar">
-      <div class="brandmark" aria-hidden="true"><svg viewBox="0 0 26 26"><path d="M4 17.5 8 10l4-3.5h8L23 17v4h-3.5v-3H7v3H4z"/><circle cx="8.5" cy="18" r="1.5"/><circle cx="19" cy="18" r="1.5"/></svg></div>
-      <div class="brand"><strong>F30<span>CONNECT</span></strong><small>FREE EDITION · PRIVATE TOKEN</small></div>
-      <button type="button" id="openConnection" class="icon-button" aria-label="Flespi connection" title="Flespi connection">⌁</button>
-      <div id="statusChip" class="status-pill"><i></i><span>Loading</span></div>
-      <button class="icon-button settings-launch" id="openSettings" aria-label="Personalization settings" title="Photos and settings"><svg viewBox="0 0 24 24"><path d="M12 3v2m0 14v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M3 12h2m14 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/><circle cx="12" cy="12" r="4"/></svg></button>
+      <button class="icon-button settings-launch" id="openSettings" aria-label="Settings" title="Dashboard settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.1"/><path d="M19.4 15.1c.1.2.3.4.6.6l.3.2-1.8 3.1-.4-.1c-.6-.2-1.1-.1-1.5.1-.3.2-.5.6-.6 1.2l-.1.4h-3.6l-.1-.4c-.1-.6-.3-1-.7-1.2-.4-.2-.9-.3-1.5-.1l-.4.1-1.8-3.1.3-.2c.5-.4.8-.8.8-1.2 0-.5-.3-.9-.8-1.2l-.3-.2 1.8-3.1.4.1c.6.2 1.1.1 1.5-.1.4-.2.6-.7.7-1.3l.1-.4h3.6l.1.4c.1.6.3 1 .6 1.3.4.2.9.3 1.5.1l.4-.1 1.8 3.1-.3.2c-.5.3-.8.7-.8 1.2 0 .2.1.5.2.7z" transform="translate(-2.1 -2.1) scale(1.18)"/></svg>
+      </button>
+      <div class="brand" aria-label="F30 Connect"><strong>F30 <span>Connect</span></strong></div>
+      <button type="button" id="openConnection" class="icon-button add-connection" aria-label="Flespi connection" title="Flespi connection">+</button>
     </header>
+    <div class="vehicle-name">My F30</div>
     <main>
       <section id="dashboardScreen" class="screen active" aria-label="Dashboard">
-        <div class="section-head"><div><p class="eyebrow">YOUR VEHICLE</p><h1>BMW 328i <span>F30</span></h1></div><button class="icon-button" id="refreshDashboard" aria-label="Refresh dashboard" title="Refresh"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6M20 4v7h-7"/></svg></button></div>
-        <div class="hero">
-          <div class="hero-top"><span class="hero-tag">2015 • CAN-CONTROL</span><span class="hero-tag subtle">FMC130</span></div>
-          <div id="carFrontScene" class="f30-front-scene car-art state-sleeping" role="img" aria-label="BMW F30 front-end status illustration">
-            <div class="front-backdrop"></div>
-            <div class="car-shadow"></div>
-            <div class="beam beam-left"></div>
-            <div class="beam beam-right"></div>
-            <div class="roof-crest"></div>
-            <div class="windshield-band"></div>
-            <div class="hood-skin"></div>
-            <div class="hood-cut"></div>
-            <div class="bumper-top"></div>
-            <div class="kidneys"><span class="kidney kidney-left"></span><span class="kidney kidney-right"></span><span class="kidney-divider"></span></div>
-            <div class="headlight headlight-left"><span class="ring ring-1"></span><span class="ring ring-2"></span><span class="beam-core"></span></div>
-            <div class="headlight headlight-right"><span class="ring ring-1"></span><span class="ring ring-2"></span><span class="beam-core"></span></div>
-            <div class="lower-intake"></div>
-            <div class="splitter"></div>
-            <div class="fogline fogline-left"></div>
-            <div class="fogline fogline-right"></div>
+        <section class="hero" aria-label="BMW F30 vehicle status">
+          <div class="car-photo-display" id="carFrontScene" data-visual-state="sleeping" role="img" aria-label="Black BMW F30, lights off">
+            <img class="state-car-image" data-state-image="sleeping" src="./car-offline.webp" alt="" fetchpriority="high" draggable="false">
+            <img class="state-car-image" data-state-image="online" src="./car-online.webp" alt="" draggable="false">
+            <img class="state-car-image" data-state-image="ignition" src="./car-ignition.webp" alt="" draggable="false">
           </div>
-          <div id="vehicleStateText" class="vehicle-state-caption">Sleeping / offline</div>
-          <div class="hero-bottom"><div><span class="tiny-label">LATEST LOCATION</span><div id="locationText" class="location-text">Waiting for data</div><button id="lastLocationMap" class="hero-map-link" hidden>View location in Maps ↗</button></div><span id="lastSeen" class="last-seen">—</span></div>
-        </div>
+          <div class="hero-status-area" aria-live="polite">
+            <div id="statusChip" class="status-pill offline"><i></i><span>Offline / Sleeping</span></div>
+            <span id="lastSeen" class="last-seen">Waiting for data</span>
+          </div>
+          <div class="hero-bottom">
+            <div class="hero-location">
+              <span class="tiny-label">LATEST LOCATION</span>
+              <div id="locationText" class="location-text">Waiting for data</div>
+              <button id="lastLocationMap" class="hero-map-link" hidden>View location in Maps ↗</button>
+            </div>
+            <button class="icon-button" id="refreshDashboard" aria-label="Refresh vehicle data" title="Refresh vehicle data"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6M20 4v7h-7"/></svg></button>
+          </div>
+        </section>
         <div id="notice" class="notice" hidden role="status"></div>
         <div class="metric-grid" id="quickMetricGrid">
           <div class="metric" data-quick-card="1"><div class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15v10H4zM20 11h2v4h-2M8 5l-2 3"/></svg><span class="metric-label-text" id="quickMetricTitle1">EXTERNAL VOLTAGE</span></div><div class="quick-metric-reading"><strong id="quickMetricValue1">—</strong><span class="metric-unit" id="quickMetricUnit1"></span></div><small id="quickMetricTime1">No recent reading</small></div>
@@ -150,10 +146,10 @@
       </section>
     </main>
     <nav class="bottom-nav" aria-label="Main navigation">
-      <button class="active" data-nav="dashboard" aria-current="page"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10H3V11zM9 21v-7h6v7"/></svg><span>Home</span></button>
+      <button class="active" data-nav="dashboard" aria-current="page"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10H3V11zM9 21v-7h6v7"/></svg><span>Vehicle</span></button>
       <button data-nav="trips"><svg viewBox="0 0 24 24"><path d="m3 18 7-13 4 6 7-5M4 4v5h5"/></svg><span>Trips</span></button>
       <button data-nav="events"><svg viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3ZM12 9v5m0 3v1"/></svg><span>Events</span></button>
-      <button data-nav="diagnostics"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM7 9l3 3-3 3m5 0h5"/></svg><span>Tools</span></button>
+      <button data-nav="diagnostics"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM7 9l3 3-3 3m5 0h5"/></svg><span>More</span></button>
     </nav>
   </div>
   <dialog id="commandDialog" class="dialog"><form method="dialog"><div class="dialog-icon" id="dialogIcon">🔒</div><h2 id="dialogTitle">Confirm action</h2><p id="dialogDesc">For safety, type the action to confirm.</p><label for="confirmInput">Type <b id="confirmWord">LOCK</b> to proceed</label><input id="confirmInput" type="text" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text"><div class="dialog-buttons"><button value="cancel" class="cancel-button">Cancel</button><button id="dialogSubmit" type="button" class="submit-button" disabled>Send command</button></div></form></dialog>

@@ -87,21 +87,25 @@ function saveQuickMetrics(){
   quickMetrics=result;renderQuickMetrics();
   const msg=el('quickMetricsStatus');msg.hidden=false;msg.textContent='Saved. The six Home screen cards now use your selected telemetry fields and names.';
 }
-function renderStatus(){const pill=el('statusChip');pill.className='status-pill '+(state.device?' '+(state.online?'live':'offline'):'error');pill.querySelector('span').textContent=state.device?(state.online?'Connected':'Offline'):'Not ready';}
-
 function currentVehicleVisualState(){
-  if(!state.online)return 'sleeping';
-  const ignition=truth(first(['engine.ignition.status']).value)||(n(first(['can.engine.rpm']).value)||0)>0;
-  return ignition?'ignition':'online';
+  // Never light the illustration from stale ignition telemetry when the tracker is offline.
+  if(state.device?.connected!==true)return 'sleeping';
+  return truth(first(['engine.ignition.status']).value)?'ignition':'online';
 }
 function renderHeroVisual(){
   const scene=el('carFrontScene');
   if(!scene)return;
   const visual=currentVehicleVisualState();
-  scene.classList.remove('state-sleeping','state-online','state-ignition');
-  scene.classList.add(`state-${visual}`);
-  const caption=el('vehicleStateText');
-  if(caption)caption.textContent=visual==='ignition'?'Ignition ON · short beams + angel eyes':'online'===visual?'Online · angel eyes active':'Sleeping / offline';
+  scene.dataset.visualState=visual;
+  const labels={sleeping:'Black BMW F30, all lights off',online:'Black BMW F30, angel eyes illuminated',ignition:'Black BMW F30, angel eyes and low beams illuminated'};
+  scene.setAttribute('aria-label',labels[visual]);
+}
+function renderStatus(){
+  const pill=el('statusChip');
+  if(!pill)return;
+  const visual=currentVehicleVisualState();
+  pill.className=`status-pill ${visual}`;
+  pill.querySelector('span').textContent=visual==='ignition'?'Ignition ON':visual==='online'?'Online':'Offline / Sleeping';
 }
 function renderDashboard(){
   state.online=state.device?.connected===true;
@@ -112,11 +116,11 @@ function renderDashboard(){
   const loc=el('locationText');loc.textContent=lat!==null&&lon!==null?`${lat.toFixed(5)}, ${lon.toFixed(5)}`:'Location unavailable';
   const map=el('lastLocationMap');map.hidden=lat===null||lon===null;if(!map.hidden)map.dataset.point=`${lat},${lon}`;
   const lastSeen=state.device?.last_active||first(['server.timestamp','timestamp']).value;
-  setText('lastSeen',fmtAgo(n(lastSeen)));
+  setText('lastSeen',lastSeen?`Last updated ${fmtAgo(n(lastSeen))}`:'No recent connection');
   if(!state.device)notice('No device data loaded. Open Flespi connection and unlock your token.');else notice('');
   renderDeviceDetails();renderTelemetry();renderChart();
 }
-async function loadDashboard(){el('refreshDashboard').disabled=true;try{const data=await api('/api/dashboard');state.device=data.device;state.telemetry=data.telemetry||{};state.user=data.user||'';renderDashboard();}catch(err){state.device=null;renderStatus();notice(err.message);}finally{el('refreshDashboard').disabled=false;}}
+async function loadDashboard(){el('refreshDashboard').disabled=true;try{const data=await api('/api/dashboard');state.device=data.device;state.telemetry=data.telemetry||{};state.user=data.user||'';renderDashboard();}catch(err){state.device=null;renderStatus();renderHeroVisual();notice(err.message);}finally{el('refreshDashboard').disabled=false;}}
 function recentVoltage(){return state.history.filter(m=>n(m['external.powersource.voltage'])!==null&&n(m.timestamp)!==null).sort((a,b)=>a.timestamp-b.timestamp).map(m=>({t:m.timestamp,v:n(m['external.powersource.voltage'])}));}
 function renderChart(){const pts=recentVoltage().filter(p=>p.t>=Date.now()/1000-86400);const box=el('batteryChart');if(pts.length<2){box.innerHTML='<div class="empty-chart">Waiting for at least two voltage readings</div>';return;}
   const data=pts.length>250?pts.filter((_,i)=>i%Math.ceil(pts.length/250)===0):pts;

@@ -62,44 +62,54 @@ body.photo-hero .hero .hero-bottom{border-top-color:#ffffff59}
 @media(max-width:360px){.metric strong{font-size:22px}.metric-label{font-size:7.5px}}
 
 
-/* v1.3.1: BMW front-end hero with three live lighting states. */
-.hero{overflow:hidden}
-.f30-front-scene{position:relative;width:min(100%,560px);height:186px;margin:2px auto 6px;overflow:visible;filter:drop-shadow(0 18px 40px rgba(0,0,0,.38));}
-.front-backdrop{position:absolute;inset:14px 24px 28px;border-radius:28px;background:radial-gradient(circle at 50% 18%,rgba(120,170,215,.12),transparent 42%),linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0));opacity:.75}
-.car-shadow{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);width:78%;height:24px;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(3,8,17,.82),rgba(3,8,17,.08) 72%,rgba(3,8,17,0) 100%)}
-.roof-crest{position:absolute;left:50%;top:9px;transform:translateX(-50%);width:32%;height:38px;border-radius:55% 55% 20% 20%/70% 70% 20% 20%;background:linear-gradient(180deg,#33485d,#151f2d 66%,#0c1622);border:1px solid rgba(184,212,236,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
-.windshield-band{position:absolute;left:50%;top:30px;transform:translateX(-50%);width:40%;height:30px;border-radius:12px 12px 18px 18px/12px 12px 24px 24px;background:linear-gradient(180deg,#182839,#081321);border:1px solid rgba(151,183,208,.15);box-shadow:inset 0 12px 18px rgba(114,158,200,.06)}
-.hood-skin{position:absolute;left:50%;top:48px;transform:translateX(-50%);width:72%;height:92px;border-radius:34% 34% 22% 22%/36% 36% 30% 30%;background:linear-gradient(180deg,#2a3b4c 0%,#141f2b 22%,#0b141e 58%,#050b12 100%);border:1px solid rgba(203,225,244,.16);box-shadow:inset 0 12px 22px rgba(255,255,255,.05), inset 0 -18px 28px rgba(0,0,0,.42)}
-.hood-cut{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:60%;height:48px;border-radius:0 0 48% 48%/0 0 100% 100%;border-top:1px solid rgba(189,212,233,.12);opacity:.7}
-.bumper-top{position:absolute;left:50%;top:106px;transform:translateX(-50%);width:86%;height:36px;border-radius:24px;background:linear-gradient(180deg,#182430,#0a1119);border:1px solid rgba(195,221,242,.12);box-shadow:inset 0 8px 14px rgba(255,255,255,.03)}
-.kidneys{position:absolute;left:50%;top:86px;transform:translateX(-50%);width:20%;height:42px;display:flex;align-items:center;justify-content:center;gap:8px;z-index:2}
-.kidney{display:block;flex:1 1 0;height:100%;border-radius:45% 45% 52% 52%/22% 22% 78% 78%;background:linear-gradient(180deg,#04080c,#141d28 28%,#04080c 100%);border:1px solid rgba(144,171,194,.28);position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.38), inset 0 0 0 1px rgba(255,255,255,.04)}
-.kidney::before{content:"";position:absolute;inset:3px;background:repeating-linear-gradient(90deg,rgba(164,184,200,.28) 0 2px,rgba(5,8,12,.95) 2px 6px);border-radius:inherit;opacity:.85}
-.kidney-divider{position:absolute;left:50%;top:1px;transform:translateX(-50%);width:2px;height:38px;background:linear-gradient(180deg,rgba(233,243,252,.46),rgba(90,108,123,.4));border-radius:2px}
-.headlight{position:absolute;top:84px;width:23%;height:40px;z-index:3}
-.headlight::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(36,51,66,.95),rgba(9,15,22,.92));clip-path:polygon(2% 70%,12% 38%,36% 18%,78% 20%,98% 42%,86% 76%,38% 86%,10% 82%);border:1px solid rgba(189,221,247,.22);box-shadow:inset 0 0 18px rgba(86,129,171,.12)}
-.headlight-left{left:9.5%;transform:scaleX(1)}
-.headlight-right{right:9.5%;transform:scaleX(-1)}
-.ring,.beam-core{position:absolute;display:block;border-radius:50%;transition:opacity .25s ease,box-shadow .25s ease,background .25s ease,transform .25s ease}
-.ring{top:9px;width:13px;height:13px;border:2px solid rgba(212,235,255,.08);box-shadow:0 0 0 1px rgba(255,255,255,.02);opacity:0}
-.ring-1{left:16px}.ring-2{left:34px}
-.beam-core{top:15px;left:54px;width:20px;height:7px;border-radius:8px;background:rgba(206,231,255,.12);opacity:0}
-.lower-intake{position:absolute;left:50%;top:126px;transform:translateX(-50%);width:42%;height:20px;border-radius:0 0 16px 16px;background:linear-gradient(180deg,#02060b,#0a131d 32%,#02060b 100%);border:1px solid rgba(126,150,170,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}
-.lower-intake::before{content:"";position:absolute;inset:4px 6px;background:repeating-linear-gradient(90deg,rgba(94,115,131,.2) 0 2px,rgba(5,8,12,.95) 2px 7px);border-radius:inherit;opacity:.9}
-.splitter{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);width:74%;height:8px;border-radius:10px;background:linear-gradient(90deg,rgba(65,87,106,.3),rgba(216,232,244,.18),rgba(65,87,106,.3));opacity:.7}
-.fogline{position:absolute;top:122px;width:14%;height:6px;border-radius:6px;background:linear-gradient(90deg,rgba(142,168,189,.2),rgba(242,248,255,.5),rgba(142,168,189,.2));opacity:.35}.fogline-left{left:10%}.fogline-right{right:10%}
-.beam{position:absolute;top:82px;width:30%;height:72px;opacity:0;pointer-events:none;filter:blur(6px);transition:opacity .25s ease}.beam-left{left:-2%;clip-path:polygon(0 45%,100% 0,100% 100%)}.beam-right{right:-2%;clip-path:polygon(0 0,100% 45%,0 100%)}
-.vehicle-state-caption{text-align:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9fb9d5;margin:0 0 10px}
-.f30-front-scene.state-sleeping .hood-skin{background:linear-gradient(180deg,#1d2b38 0%,#101923 24%,#070d14 65%,#03070c 100%)}
-.f30-front-scene.state-sleeping .front-backdrop{opacity:.45}.f30-front-scene.state-sleeping .fogline{opacity:.22}
-.f30-front-scene.state-online .ring{opacity:1;border-color:#d8edff;box-shadow:0 0 8px rgba(157,212,255,.8),0 0 18px rgba(80,178,255,.55), inset 0 0 6px rgba(255,255,255,.42)}
-.f30-front-scene.state-online .beam-core{opacity:.18;background:rgba(210,236,255,.28)}
-.f30-front-scene.state-online .front-backdrop{background:radial-gradient(circle at 50% 20%,rgba(123,178,231,.18),transparent 44%),linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0))}
-.f30-front-scene.state-online .fogline{opacity:.44}
-.f30-front-scene.state-ignition .ring{opacity:1;border-color:#ebf7ff;box-shadow:0 0 10px rgba(186,224,255,.95),0 0 22px rgba(95,191,255,.75), inset 0 0 8px rgba(255,255,255,.5)}
-.f30-front-scene.state-ignition .beam-core{opacity:.95;background:linear-gradient(90deg,rgba(243,251,255,.98),rgba(199,230,255,.88));box-shadow:0 0 10px rgba(244,251,255,.65)}
-.f30-front-scene.state-ignition .beam{opacity:.8;background:linear-gradient(90deg,rgba(199,231,255,.28),rgba(228,245,255,.7),rgba(255,255,255,.04))}
-.f30-front-scene.state-ignition .front-backdrop{background:radial-gradient(circle at 50% 18%,rgba(155,206,255,.22),transparent 42%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0))}
-.f30-front-scene.state-ignition .fogline{opacity:.58}
-@media (min-width:800px){.f30-front-scene{height:210px}.vehicle-state-caption{margin-bottom:12px}}
-@media (max-width:560px){.f30-front-scene{height:162px}.vehicle-state-caption{font-size:10px;letter-spacing:.1em}}
+
+
+/* v1.4 — actual website layout rebuilt to match selected F30 Connect design. */
+:root{--bg:#051121;--bg2:#0a192c;--surface:#0e2036;--surface2:#142944;--line:#243d56;--accent:#42b5ff;--muted:#a1b9d3}
+html{background:#050e1d}
+body{background:radial-gradient(ellipse 440px 380px at 50% 150px,rgba(26,79,125,.23),transparent 75%),linear-gradient(180deg,#06162a 0%,#071525 35%,#071120 100%)}
+#app{width:min(100%,690px);padding:env(safe-area-inset-top) 17px calc(100px + env(safe-area-inset-bottom));}
+.topbar{height:65px;display:grid;grid-template-columns:40px minmax(0,1fr) 40px;align-items:center;gap:6px;border-bottom:0;margin:0;background:none}
+.brand{text-align:center;min-width:0;line-height:1}
+.brand strong{font-size:23px;letter-spacing:-.035em;font-weight:750;white-space:nowrap}
+.brand strong span{color:#4db8ff}
+.brandmark{display:none}
+.topbar .icon-button{width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#b8cce3;box-shadow:none}
+.topbar .icon-button svg{width:25px;height:25px;stroke-width:1.75}
+.topbar #openConnection{font-size:31px;line-height:1;font-weight:250;padding:0;margin:0;display:grid;place-items:center;color:#b8cce3}
+.topbar #openConnection:hover,.topbar #openSettings:hover{background:rgba(95,164,210,.12);color:#f3faff}
+.vehicle-name{font-size:16px;text-align:center;font-weight:550;color:#dceafb;padding:4px 0 3px;letter-spacing:-.02em}
+#dashboardScreen>.section-head{display:none}
+.hero{border:0;border-radius:0;background:transparent;box-shadow:none;padding:0;overflow:visible;min-height:0;isolation:auto}
+.hero::before,.hero::after{display:none!important}
+.car-photo-display{position:relative;width:min(100%,480px);aspect-ratio:360 / 279;margin:1px auto 0;overflow:visible;isolation:isolate;}
+.car-photo-display::before{content:"";position:absolute;left:4%;right:4%;top:7%;bottom:14%;border-radius:50%;background:radial-gradient(ellipse,rgba(24,82,130,.21),transparent 75%);z-index:-1}
+.state-car-image{width:100%;height:100%;position:absolute;top:0;left:0;object-fit:contain;opacity:0;transition:opacity .45s ease-in-out;pointer-events:none;user-select:none;-webkit-user-drag:none;}
+.car-photo-display[data-visual-state="sleeping"] [data-state-image="sleeping"],
+.car-photo-display[data-visual-state="online"] [data-state-image="online"],
+.car-photo-display[data-visual-state="ignition"] [data-state-image="ignition"]{opacity:1}
+.hero-status-area{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;position:relative;z-index:1;margin:0 auto 18px;text-align:center}
+.hero-status-area .status-pill{margin:0;display:inline-flex;justify-content:center;gap:9px;min-width:170px;max-width:none;padding:10px 19px;border-radius:999px;border:1px solid rgba(97,131,165,.35);background:linear-gradient(180deg,rgba(15,31,52,.88),rgba(9,22,39,.91));font-size:13px;color:#e5f0fe;font-weight:550;white-space:nowrap}
+.hero-status-area .status-pill i{width:9px;height:9px;background:#99aac1;box-shadow:none}
+.hero-status-area .status-pill.sleeping i{background:#9cb3ce}
+.hero-status-area .status-pill.sleeping::before{content:'☾';font-size:17px;color:#c0d8f8;margin:-2px 0 -1px;line-height:1}
+.hero-status-area .status-pill.sleeping i{display:none}
+.hero-status-area .status-pill.online{border-color:rgba(0,189,121,.54);background:rgba(1,52,49,.45);color:#e8fff7}
+.hero-status-area .status-pill.online i{background:#08dc92;box-shadow:0 0 12px rgba(1,219,126,.6)}
+.hero-status-area .status-pill.ignition{border-color:rgba(44,139,241,.6);background:rgba(15,52,106,.56);color:#ebf4ff}
+.hero-status-area .status-pill.ignition i{background:#279dff;box-shadow:0 0 12px rgba(25,137,255,.55)}
+.hero-status-area .last-seen{font-size:12px;color:#b0bfd0;letter-spacing:.005em}
+.hero-bottom{width:100%;display:flex;justify-content:space-between;align-items:center;gap:15px;margin:0 0 15px;padding:13px 13px 12px;background:rgba(13,30,48,.64);border:1px solid rgba(93,135,175,.2);border-radius:13px;text-align:left}
+.hero-bottom .tiny-label{font-size:9px;letter-spacing:.14em;color:#92b5d4}
+.hero-bottom .location-text{font-size:13px;margin:4px 0 0;overflow-wrap:anywhere}
+.hero-bottom .hero-map-link{font-size:11px;margin-top:0}
+.hero-bottom #refreshDashboard{flex:none;width:35px;height:35px;border-radius:50%;background:#1937525c}
+.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:8px 0 18px}
+.metric{background:linear-gradient(145deg,rgba(20,43,67,.89),rgba(12,27,45,.96));border:1px solid #31517075;border-radius:16px;box-shadow:inset 0 1px 0 rgba(138,186,226,.04)}
+.metric strong{line-height:1.4}
+.bottom-nav{background:rgba(5,18,34,.97);border-top:1px solid #24415b5f;box-shadow:0 -10px 32px #05101d99;max-width:690px}
+.bottom-nav button.active{color:#41adff}
+.bottom-nav button.active svg{fill:rgba(42,142,232,.16)}
+@media(min-width:750px){#app{width:min(100%,690px);padding-left:30px;padding-right:30px}.car-photo-display{width:500px;max-width:100%}.hero{min-height:0!important}}
+@media(max-width:560px){#app{padding-left:15px;padding-right:15px}.topbar{height:61px}.brand strong{font-size:22px}.vehicle-name{font-size:15px}.hero-status-area{margin-bottom:14px}.metric{padding:12px}.car-photo-display{width:min(100%,420px)}.hero-bottom{padding:11px 12px}}
+@media(max-width:350px){.brand strong{font-size:20px}.hero-status-area .status-pill{min-width:155px}}
