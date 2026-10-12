@@ -1,17 +1,21 @@
-F30 Connect v1.4.3 — Hero Blend Update
+F30 Connect v1.4.4 — Photo Centering and Seamless Hero
 
-This patch keeps the current UI and fixes the choppy cut-out look by blending the hero background with the BMW image.
+Fixed:
+- online and ignition-on car photographs are centered on the same grille axis as the offline car
+- fades image edges in the assets themselves, so the hard image rectangle disappears
+- removes old inline !important sizing rules that blocked the previous CSS changes
+- preserves vehicle status pill position and all six customizable telemetry cards
 
-Changes:
-- matched dark-blue hero background behind the car
-- soft bottom fade and vignette on the car image
-- smoother visual transition between the car scene and the dashboard cards
-- no telemetry, trips, token, or settings logic changes
+Upload the CONTENTS of the patch ZIP to the GitHub repo ROOT (not the ZIP itself):
+- index.html       REPLACE
+- app.js           REPLACE
+- sw.js            REPLACE
+- f30-ui-v144.css  NEW
+- f30-offline-aligned-v144.webp  NEW
+- f30-online-aligned-v144.webp   NEW
+- f30-ignition-aligned-v144.webp NEW
 
-Replace these files in the repository root:
-- index.html
-- sw.js
-- f30-ui-v143.css  (new file)
+Do NOT upload README-PATCH.txt unless desired. You may leave old assets and CSS files in GitHub;
+the new index and app use versioned filenames.
 
-Then commit and wait for GitHub Pages to deploy.
-Hard refresh desktop with Ctrl+Shift+R. On iPhone, reload Safari or reopen the PWA after the service worker updates.
+Note: The current 3 visual states depict device online + ignition telemetry, not independently measured headlight states.

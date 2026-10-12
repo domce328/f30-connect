@@ -100,7 +100,7 @@ function renderHeroVisual(){
   const labels={sleeping:'Black BMW F30, all lights off',online:'Black BMW F30, angel eyes illuminated',ignition:'Black BMW F30, angel eyes and low beams illuminated'};
   scene.setAttribute('aria-label',labels[visual]);
   // Only one image exists in the DOM. This avoids stacked images even if Safari holds stale CSS.
-  const target={sleeping:'car-offline.webp',online:'car-online.webp',ignition:'car-ignition.webp'}[visual];
+  const target={sleeping:'f30-offline-aligned-v144.webp',online:'f30-online-aligned-v144.webp',ignition:'f30-ignition-aligned-v144.webp'}[visual];
   const image=el('carStateImage');
   if(image && !image.getAttribute('src').endsWith('/'+target))image.setAttribute('src','./'+target);
 }

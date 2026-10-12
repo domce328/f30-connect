@@ -13,21 +13,8 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./f30-ui-v143.css">
+  <link rel="stylesheet" href="./f30-ui-v144.css">
   <title>F30 Connect</title>
-  <!-- Layout safety net: even if Safari holds an older stylesheet, the hero cannot stack images. -->
-  <style>
-    .topbar { display:grid !important; grid-template-columns:40px minmax(0,1fr) 40px !important; gap:6px !important; align-items:center !important; justify-content:initial !important; margin:0 !important; border-bottom:0 !important; height:65px !important; }
-    .topbar .brand { text-align:center !important; margin:0 !important; min-width:0 !important; }
-    .topbar #openSettings { grid-column:1; grid-row:1; }
-    .topbar .brand { grid-column:2; grid-row:1; }
-    .topbar #openConnection { grid-column:3; grid-row:1; }
-    .car-photo-display { position:relative !important; width:min(100%,480px) !important; aspect-ratio:360 / 279 !important; height:auto !important; max-width:100% !important; margin:1px auto 0 !important; overflow:hidden !important; }
-    .car-photo-display > img { position:absolute !important; display:block !important; inset:0 !important; width:100% !important; height:100% !important; max-width:100% !important; object-fit:contain !important; opacity:1 !important; }
-    #dashboardScreen>.section-head { display:none !important; }
-    .hero { padding:0 !important; background:transparent !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; min-height:0 !important; }
-    @media(max-width:560px) { .topbar{height:61px !important} .car-photo-display{width:min(100%,420px) !important} }
-  </style>
 </head>
 <body>
   <div id="wallpaperLayer" class="wallpaper-layer" aria-hidden="true"></div>
@@ -44,7 +31,7 @@
       <section id="dashboardScreen" class="screen active" aria-label="Dashboard">
         <section class="hero" aria-label="BMW F30 vehicle status">
           <div class="car-photo-display" id="carFrontScene" data-visual-state="sleeping" role="img" aria-label="Black BMW F30, lights off">
-            <img id="carStateImage" class="state-car-image" src="./car-offline.webp" alt="" fetchpriority="high" decoding="async" draggable="false">
+            <img id="carStateImage" class="state-car-image" src="./f30-offline-aligned-v144.webp" alt="" fetchpriority="high" decoding="async" draggable="false">
           </div>
           <div class="hero-status-area" aria-live="polite">
             <div id="statusChip" class="status-pill offline"><i></i><span>Offline / Sleeping</span></div>
@@ -185,6 +172,6 @@
       <p class="help-line">Browser-based tokens are less isolated than backend secrets. Use a device-only ACL token and restrict allowed origins to your published app address.</p>
     </div>
   </dialog>
-  <script type="module" src="./app.js?v=1.4.3"></script>
+  <script type="module" src="./app.js?v=1.4.4"></script>
 </body>
 </html>
