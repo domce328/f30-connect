@@ -1,3 +1,4 @@
+import {validateCommand} from './command-policy.js';
 /* F30 Connect Free Edition: direct Flespi browser access.
    Token encrypted at rest with a user passphrase. NO token is bundled or shared with the site host.
    Warning: browser runtime secrets are weaker than a vetted server-side backend and can be exposed by XSS/extensions.
@@ -183,14 +184,6 @@ async function sendNow(text,kind,requireParked=false){
   const command=r.result?.[0]||null;rememberCommand(command,kind);
   return {blocked:false,command,note:'Real-time command only, never an offline queue. A device response does not independently verify the physical vehicle state.'};
 }
-function validateCommand(input){
-  if(typeof input!=='string'||input.length>240||!input.trim()||/[^\x20-\x7e]/.test(input))throw new Error('One ASCII command, max 240 characters');
-  const s=input.trim().replace(/[ \t]+/g,' ').toLowerCase();
-  if(/^(getinfo|getstatus)$/i.test(s))return {kind:'read',text:s.toLowerCase()};
-  if(/^getparam [0-9]{1,6}(?:\s*;\s*[0-9]{1,6}){0,29}$/i.test(s)||/^readio [0-9]{1,6}$/i.test(s))return {kind:'read',text:s.replace(/\s*;\s*/g,';')};
-  if(/^setparam [0-9]{1,6}:[+-]?[0-9]{1,12}(?:\s*;\s*[0-9]{1,6}:[+-]?[0-9]{1,12}){0,15}$/i.test(s))return {kind:'write',text:s.replace(/\s*;\s*/g,';')};
-  throw new Error('Allowed: getinfo, getstatus, getparam IDs, readio ID, setparam ID:VALUE.');
-}
 async function queueRead(text,kind){
   const r=await queryFlespi(`${endpoint()}/commands-queue`,{method:'POST',body:[{name:'custom',properties:{text},ttl:600,max_attempts:1,meta:{app:'f30-connect',kind}}]});
   const command=r.result?.[0]||null;rememberCommand(command,kind);
@@ -293,8 +286,8 @@ export async function api(route,opts={}){
   if(path==='/api/custom-command'){
     const spec=validateCommand(body?.text);
     if(spec.kind==='read')return {...(await queueRead(spec.text,'custom-read')),kind:'read'};
-    if(body.confirm!=='APPLY'||validateCommand(body.confirmCommand).text!==spec.text)throw new Error('Configuration change requires APPLY and the original command');
-    return {...(await sendNow(spec.text,'custom-write')),kind:'write'};
+    if(body.confirm!=='APPLY'||validateCommand(body.confirmCommand).text!==spec.text)throw new Error('Custom command requires APPLY and the original command');
+    return {...(await sendNow(spec.text,'custom-command',/^(lvcanblockengine|lvcanopentrunk)$/i.test(spec.text))),kind:'write'};
   }
   throw new Error('Unsupported request');
 }

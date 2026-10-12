@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-const source=await readFile(new URL('../flespi-direct.js',import.meta.url),'utf8');
+const policy=await readFile(new URL('../command-policy.js',import.meta.url),'utf8');
+const policyUrl='data:text/javascript;base64,'+Buffer.from(policy).toString('base64');
+const source=(await readFile(new URL('../flespi-direct.js',import.meta.url),'utf8')).replace('./command-policy.js',policyUrl);
 let serial=0;
 async function fixture(handler){
   const storage=new Map();
@@ -107,4 +109,34 @@ test('parameter history rejects injected fields and unsupported ranges',async()=
 test('parameter history reports the message limit as truncated',async()=>{
   const {app}=await fixture(()=>json(Array.from({length:1500},(_,i)=>({timestamp:i,p:i}))));
   assert.equal((await app.api('/api/parameter-history?field=p&days=7')).truncated,true);
+});
+test('CAN adapter info is accepted as a read command',async()=>{
+  const {app,calls}=await fixture(()=>json([{id:7}]));
+  await app.api('/api/custom-command',{method:'POST',body:JSON.stringify({text:'lvcangetinfo'})});
+  assert.equal(JSON.parse(calls[0].options.body)[0].properties.text,'lvcangetinfo');
+  assert.match(calls[0].url,/commands-queue$/);
+});
+test('arbitrary command arguments preserve case and internal spaces',async()=>{
+  const text='setparam 2004:MyAPN;2005:User  Name;2006:CaseSensitivePassword';
+  const {app,calls}=await fixture(path=>json(path.endsWith('/commands')?[{id:8}]:[{connected:true}]));
+  await app.api('/api/custom-command',{method:'POST',body:JSON.stringify({text,confirm:'APPLY',confirmCommand:text})});
+  assert.equal(JSON.parse(calls[1].options.body)[0].properties.text,text);
+  assert.match(calls[1].url,/commands$/);
+});
+test('unknown commands require confirmation and never queue offline',async()=>{
+  const {app,calls}=await fixture(()=>json([{connected:false}]));
+  await assert.rejects(app.api('/api/custom-command',{method:'POST',body:JSON.stringify({text:'customvendorcmd 42'})}),/APPLY/);
+  assert.equal(calls.length,0);
+  const r=await app.api('/api/custom-command',{method:'POST',body:JSON.stringify({text:'customvendorcmd 42',confirm:'APPLY',confirmCommand:'customvendorcmd 42'})});
+  assert.equal(r.blocked,true);assert.equal(calls.length,1);assert.equal(calls[0].options.method,'GET');
+});
+test('custom command validation rejects multiline and oversized input',async()=>{
+  const {app,calls}=await fixture(()=>json([]));
+  for(const text of ['getinfo\nsetparam 1:2','x'.repeat(241),'','reboot\u0000'])await assert.rejects(app.api('/api/custom-command',{method:'POST',body:JSON.stringify({text})}),/ASCII command/);
+  assert.equal(calls.length,0);
+});
+test('manual engine blocking retains the parked-state check',async()=>{
+  const {app,calls}=await fixture(path=>json(path.endsWith('/telemetry/all')?[{telemetry:{'engine.ignition.status':{value:true,ts:Date.now()/1000}}}]:[{connected:true}]));
+  const text='lvcanblockengine';const r=await app.api('/api/custom-command',{method:'POST',body:JSON.stringify({text,confirm:'APPLY',confirmCommand:text})});
+  assert.equal(r.blocked,true);assert.ok(calls.every(c=>c.options.method==='GET'));
 });

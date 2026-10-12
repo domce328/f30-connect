@@ -93,9 +93,9 @@
         <section class="panel"><div class="panel-title"><div><h2>Device information</h2><p>Direct from Flespi device state</p></div></div><div class="detail-table" id="deviceDetails"><div class="empty-state">Waiting for device information</div></div></section>
         <section class="panel"><div class="panel-title"><div><h2>Read-only GPRS diagnostics</h2><p>10-minute queue expiration</p></div></div><div class="diag-actions"><button data-diag="getinfo">Get device info <span>↗</span></button><button data-diag="getstatus">Get network status <span>↗</span></button><button data-diag="sleepSettings">Read sleep settings <span>↗</span></button><button data-diag="crashSettings">Read crash settings <span>↗</span></button></div><div id="diagnosticResult" class="result-box" hidden></div></section>
         <section class="panel console-panel" id="commandConsole">
-          <div class="panel-title"><div><h2>Custom GPRS commands</h2><p>Read parameters quickly, or apply settings with confirmation</p></div></div>
+          <div class="panel-title"><div><h2>Custom GPRS commands</h2><p>Send read commands or any custom command with confirmation</p></div></div>
           <div class="console-shortcuts" id="commandShortcuts">
-            <button type="button" data-preset="getinfo">getinfo</button>
+            <button type="button" data-preset="lvcangetinfo">CAN adapter info</button><button type="button" data-preset="getinfo">getinfo</button>
             <button type="button" data-preset="getstatus">getstatus</button>
             <button type="button" data-preset="getparam 101;102;103;1000">Sleep settings</button>
             <button type="button" data-preset="getparam 11400;11401;11402">Crash settings</button>
@@ -105,7 +105,7 @@
           <label class="field-label" for="customCommand">Command</label>
           <textarea id="customCommand" class="console-input" rows="2" maxlength="240" placeholder="getparam 101;102;103 or setparam 11401:50" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
           <div class="console-actions"><button class="submit-button" id="sendCustomCommand" type="button">Send command ↗</button><button class="secondary-button" id="saveCommandShortcut" type="button" disabled>☆ Save read shortcut</button></div>
-          <p class="help-line">Read commands may queue for up to 10 minutes. <code>setparam</code> is sent only if the device is currently connected and you type APPLY. Lock and unlock use the dedicated controls. Other commands are intentionally blocked.</p>
+          <p class="help-line">Known read commands may queue for up to 10 minutes. All other commands require APPLY and a connected tracker; they are never queued. Enter the exact GPRS command text without SMS credentials. Device and adapter support determines which commands work.</p>
           <div id="customCommandResult" class="result-box" hidden role="status"></div>
           <div id="savedShortcuts" class="saved-shortcuts" hidden></div>
         </section>
@@ -179,7 +179,7 @@
     </nav>
   </div>
   <dialog id="commandDialog" class="dialog"><form method="dialog"><div class="dialog-icon" id="dialogIcon">🔒</div><h2 id="dialogTitle">Confirm action</h2><p id="dialogDesc">For safety, type the action to confirm.</p><label for="confirmInput">Type <b id="confirmWord">LOCK</b> to proceed</label><input id="confirmInput" type="text" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text"><div class="dialog-buttons"><button value="cancel" class="cancel-button">Cancel</button><button id="dialogSubmit" type="button" class="submit-button" disabled>Send command</button></div></form></dialog>
-  <dialog id="writeDialog" class="dialog"><form method="dialog"><div class="dialog-icon">⚙</div><h2>Apply tracker configuration?</h2><p>This writes parameters to the FMC130. Incorrect settings may interfere with reporting, CAN-CONTROL, or crash detection. The command will not be queued if the device is offline.</p><div class="command-preview" id="writePreview"></div><label for="writeConfirmInput">Type <b>APPLY</b> to send now</label><input id="writeConfirmInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"><div class="dialog-buttons"><button value="cancel" class="cancel-button">Cancel</button><button id="writeSubmit" type="button" class="submit-button" disabled>Apply settings</button></div></form></dialog>
+  <dialog id="writeDialog" class="dialog"><form method="dialog"><div class="dialog-icon">⚙</div><h2>Send custom command?</h2><p>This sends the exact command below to your FMC130. It may change configuration or operate vehicle functions. It is sent only while connected and will not be queued.</p><div class="command-preview" id="writePreview"></div><label for="writeConfirmInput">Type <b>APPLY</b> to send now</label><input id="writeConfirmInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"><div class="dialog-buttons"><button value="cancel" class="cancel-button">Cancel</button><button id="writeSubmit" type="button" class="submit-button" disabled>Send command</button></div></form></dialog>
   <dialog id="connectionDialog" class="dialog connection-dialog">
     <div class="connect-inner">
       <div class="dialog-icon">🔐</div>
@@ -215,6 +215,6 @@
       <p id="historyNotice" class="help-line" role="status"></p>
     </div>
   </dialog>
-  <script type="module" src="./app.js?v=1.6.0"></script>
+  <script type="module" src="./app.js?v=1.6.1"></script>
 </body>
 </html>

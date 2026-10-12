@@ -1,3 +1,4 @@
+import {validateCommand,isReadCommand} from './command-policy.js';
 import {setupParameterHistory} from './parameter-history.js';
 import {setupPhotoSettings} from './personalize.js';
 import {api,connect,setupConnectionUI,hasSession,refreshTrustUI} from './flespi-direct.js';
@@ -286,11 +287,6 @@ function exportCsv(filename,rows){
 }
 const savedShortcutsKey='f30-connect-read-shortcuts-v1';
 let pendingWrite=null;
-function isReadCommand(text){
-  const v=String(text||'').trim();
-  return /^(getinfo|getstatus)$/i.test(v)||/^getparam [0-9]{1,6}(?:\s*;\s*[0-9]{1,6}){0,29}$/i.test(v)||/^readio [0-9]{1,6}$/i.test(v);
-}
-function isWriteCommand(text){return /^setparam [0-9]{1,6}:[+-]?[0-9]{1,12}(?:\s*;\s*[0-9]{1,6}:[+-]?[0-9]{1,12}){0,15}$/i.test(String(text||'').trim());}
 function readShortcuts(){try{const v=JSON.parse(localStorage.getItem(savedShortcutsKey)||'[]');return Array.isArray(v)?v.filter(isReadCommand).slice(0,8):[];}catch{return [];}}
 function renderShortcuts(){const list=readShortcuts();const box=el('savedShortcuts');box.hidden=!list.length;
   box.innerHTML=list.length?`<div class="field-label">Saved read commands</div><div class="console-shortcuts">${list.map((v,i)=>`<button type="button" data-saved="${i}" title="${esc(v)}">${esc(v)}</button>`).join('')}</div><button class="inline-link" id="clearShortcuts" type="button">Clear saved shortcuts</button>`:'';
@@ -298,10 +294,10 @@ function renderShortcuts(){const list=readShortcuts();const box=el('savedShortcu
   box.querySelector('#clearShortcuts')?.addEventListener('click',()=>{try{localStorage.removeItem(savedShortcutsKey);}catch{}renderShortcuts();});
 }
 function commandChanged(){el('saveCommandShortcut').disabled=!isReadCommand(el('customCommand').value);}
-function openWriteConfirm(text){pendingWrite=text.trim().replace(/\s*;\s*/g,';');el('writePreview').textContent=pendingWrite;el('writeConfirmInput').value='';el('writeSubmit').disabled=true;el('writeDialog').showModal();el('writeConfirmInput').focus();}
+function openWriteConfirm(text){pendingWrite=validateCommand(text).text;el('writePreview').textContent=pendingWrite;el('writeConfirmInput').value='';el('writeSubmit').disabled=true;el('writeDialog').showModal();el('writeConfirmInput').focus();}
 async function submitCustom(text,write=false){
   const btn=el('sendCustomCommand');btn.disabled=true;
-  result('customCommandResult',write?'Sending confirmed configuration write…':'Submitting read command…');
+  result('customCommandResult',write?'Sending confirmed custom command…':'Submitting read command…');
   try{
     const body={text,...(write?{confirm:'APPLY',confirmCommand:text}:{})};
     const data=await api('/api/custom-command',{method:'POST',body:JSON.stringify(body)});
@@ -336,9 +332,8 @@ function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEven
   });
   el('sendCustomCommand').addEventListener('click',()=>{
     const command=el('customCommand').value.trim();if(!command){result('customCommandResult','Enter or select a command first.');return;}
-    if(isWriteCommand(command))return openWriteConfirm(command);
-    if(isReadCommand(command))return submitCustom(command);
-    result('customCommandResult','Unsupported command. Use getinfo, getstatus, getparam IDs, readio ID, or numeric setparam ID:VALUE.');
+    try{const spec=validateCommand(command);if(spec.kind==='read')return submitCustom(spec.text);openWriteConfirm(spec.text);}
+    catch(err){result('customCommandResult',err.message);}
   });
   el('writeConfirmInput').addEventListener('input',e=>{el('writeSubmit').disabled=e.target.value.trim()!=='APPLY';});
   el('writeDialog').addEventListener('close',()=>{pendingWrite=null;});
@@ -360,7 +355,7 @@ const parameterHistory=setupParameterHistory({api,hasSession,telemetry:()=>state
 async function boot(){
   bind();
   setupPhotoSettings().catch(()=>{});
-  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.6.0').catch(()=>{});
+  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.6.1').catch(()=>{});
   await connect(async()=>{
     parameterHistory.reset();
     // A throttled network must not invalidate a successfully unlocked browser.
