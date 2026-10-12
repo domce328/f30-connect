@@ -2,7 +2,7 @@ import {setupPhotoSettings} from './personalize.js';
 import {api,connect,setupConnectionUI,hasSession,refreshTrustUI} from './flespi-direct.js';
 /* F30 Connect — privacy-first, framework-free PWA. Real Flespi data only. */
 const el=id=>document.getElementById(id);
-const state={device:null,telemetry:{},history:[],range:1,screen:'dashboard',lastHistoryFrom:0,historyTruncated:false,online:false,user:'',pendingAction:null,loading:false};
+const state={device:null,telemetry:{},history:[],range:1,screen:'dashboard',lastHistoryFrom:0,historyTruncated:false,online:false,user:'',pendingAction:null,loading:false,lastDeviceRefresh:0};
 const esc=x=>String(x??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=x=>{const v=Number(x);return x===null||x===undefined||x===''||!Number.isFinite(v)?null:v;};
 const fmtDate=ts=>ts?new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Vilnius'}).format(ts*1000):'—';
@@ -99,7 +99,7 @@ function ignitionObservation(){
 function currentVehicleVisualState(){
   const ignition=ignitionObservation();
   if(ignition.on&&ignition.age<=IGNITION_RECENT_SECONDS)return 'ignition';
-  if(state.device?.connected===true)return 'online';
+  if(state.device?.connected===true && Date.now()-state.lastDeviceRefresh<180000)return 'online';
   return 'sleeping';
 }
 function renderHeroVisual(){
@@ -145,7 +145,7 @@ async function loadDashboard(force=false){
     try{
       const data=await api('/api/dashboard');
       // Never clear known connectivity on a partial API failure.
-      if(data.device)state.device=data.device;
+      if(data.device){state.device=data.device;state.lastDeviceRefresh=Date.now();}
       state.telemetry={...state.telemetry,...(data.telemetry||{})};
       state.user=data.user||state.user||'';
       lastDashboardFetch=Date.now();
