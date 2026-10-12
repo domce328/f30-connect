@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./f30-ui-v148.css">
+  <link rel="stylesheet" href="./f30-ui-v149.css">
   <title>F30 Connect</title>
 </head>
 <body class="f30-home-screen" data-car-state="sleeping">
@@ -112,6 +112,15 @@
       </section>
       <section id="settingsScreen" class="screen" aria-label="Personalization settings">
         <div class="section-head"><div><p class="eyebrow">PERSONALIZATION</p><h1>Dashboard <span>settings</span></h1></div><button class="icon-button" id="backFromSettings" aria-label="Back to dashboard"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button></div>
+        <section class="panel trusted-device-panel" aria-label="Browser login settings">
+          <div class="panel-title"><div><h2>Remember this device</h2><p>Optional automatic login · only on this browser</p></div></div>
+          <p id="trustedDeviceStatus" class="help-line" role="status">Checking trusted-device status…</p>
+          <div class="photo-actions trust-actions">
+            <button type="button" id="enableTrustSetup" class="upload-button">Enable automatic login</button>
+            <button type="button" id="revokeTrustedDevice" class="secondary-button" disabled>Revoke trust &amp; lock</button>
+          </div>
+          <p class="footnote">Trusted devices can reopen F30 Connect without a passphrase. Only enable on your personal, screen-locked phone or PC. Remote actions still need confirmation.</p>
+        </section>
         <section class="panel quick-settings-panel">
           <div class="panel-title"><div><h2>Dashboard quick metrics</h2><p>Six cards on iPhone and desktop · selected from your live Flespi telemetry</p></div></div>
           <p class="help-line">Choose the raw telemetry field and an optional display name for each Home screen card. Empty names use the telemetry field name. Changes apply only to this browser.</p>
@@ -169,6 +178,10 @@
       <input id="flespiToken" type="password" placeholder="Paste your restricted Flespi token" autocomplete="off" spellcheck="false" />
       <label for="flespiPassphrase">App passphrase (minimum 10 characters)</label>
       <input id="flespiPassphrase" type="password" autocomplete="off" minlength="10" placeholder="Enter your private passphrase" />
+      <label class="remember-device-choice" for="rememberDevice">
+        <input id="rememberDevice" type="checkbox" autocomplete="off" />
+        <span><strong>Remember this device</strong><small>Automatically unlock next time on this browser. Only use on a personal, screen-locked device.</small></span>
+      </label>
       <div class="dialog-buttons">
         <button type="button" class="cancel-button" id="closeConnection">Close</button>
         <button type="button" class="submit-button" id="saveConnection">Connect</button>
@@ -178,6 +191,6 @@
       <p class="help-line">Browser-based tokens are less isolated than backend secrets. Use a device-only ACL token and restrict allowed origins to your published app address.</p>
     </div>
   </dialog>
-  <script type="module" src="./app.js?v=1.4.8"></script>
+  <script type="module" src="./app.js?v=1.4.9"></script>
 </body>
 </html>
