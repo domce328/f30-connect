@@ -29,10 +29,25 @@ async function decrypt(config,pass){
 }
 async function queryFlespi(path,init={},token=sessionToken){
   if(!token)throw new Error('No Flespi token unlocked. Open the connection dialog.');
+  // GET requests need no Content-Type. Avoid an unnecessary CORS preflight header.
+  const headers={Authorization:`FlespiToken ${token}`};
+  if(init.body!==undefined)headers['Content-Type']='application/json';
   let response;
-  try{response=await fetch(`${BASE}${path}`,{method:init.method||'GET',headers:{Authorization:`FlespiToken ${token}`,'Content-Type':'application/json'},body:init.body===undefined?undefined:JSON.stringify(init.body),cache:'no-store',signal:AbortSignal.timeout(init.timeout||45000)});}
-  catch(err){throw new Error(`Cannot reach Flespi: ${err.message||'network or browser-origin restriction'}. Verify token Allowed origins for this website.`);}
-  let value;try{value=await response.json();}catch{throw new Error(`Flespi returned non-JSON response (HTTP ${response.status})`);}
+  try{
+    response=await fetch(`${BASE}${path}`,{method:init.method||'GET',headers,body:init.body===undefined?undefined:JSON.stringify(init.body),cache:'no-store',signal:AbortSignal.timeout(init.timeout||45000)});
+  }catch(err){
+    throw new Error(`Flespi request failed for ${path.split('?')[0]}: ${err.message||'network or CORS error'}. Check Network tab or token Allowed origins.`);
+  }
+  // Distinguish a Flespi JSON error from a proxy, redirect or HTML 404 response.
+  const raw=await response.text();
+  let value;
+  try{value=JSON.parse(raw);}catch{
+    const type=(response.headers.get('content-type')||'unspecified').split(';')[0];
+    let serverPath='/unknown';
+    try{serverPath=new URL(response.url).pathname;}catch{}
+    const kind=/\<\s*!?doctype\s+html|\<\s*html/i.test(raw.slice(0,300))?'HTML page':'non-JSON body';
+    throw new Error(`Flespi request ${path.split('?')[0]} returned HTTP ${response.status}, ${kind} (${type}), response path ${serverPath}, redirected=${response.redirected}. No token data is shown.`);
+  }
   if(!response.ok || (Array.isArray(value.errors)&&value.errors.length&&!value.result?.length)){
     throw new Error(`Flespi: ${String(value.errors?.[0]?.reason||value.reason||`HTTP ${response.status}`).slice(0,250)}`);
   }
