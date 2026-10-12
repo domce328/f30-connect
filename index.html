@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./f30-ui-v147.css">
+  <link rel="stylesheet" href="./f30-ui-v148.css">
   <title>F30 Connect</title>
 </head>
 <body class="f30-home-screen" data-car-state="sleeping">
@@ -61,8 +61,15 @@
         </section>
         <section class="panel remote-panel">
           <div class="panel-title"><div><h2>Remote control</h2><p>CAN-CONTROL · immediate commands only</p></div><span class="circle-emblem shield">✓</span></div>
-          <div class="remote-buttons"><button id="lockButton" class="remote-button" data-command="lock"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>Lock doors</b><small>Send now</small></button><button id="unlockButton" class="remote-button" data-command="unlock"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0V8"/></svg><b>Unlock doors</b><small>Send now</small></button></div>
-          <p class="help-line">Commands are rejected if the tracker is offline, never queued for later execution.</p>
+          <div class="remote-buttons">
+            <button id="lockButton" class="remote-button" data-command="lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>Lock doors</b><small>Send now</small></button>
+            <button id="unlockButton" class="remote-button" data-command="unlock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0V8"/></svg><b>Unlock doors</b><small>Send now</small></button>
+            <button class="remote-button" data-command="trunk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16v10H4zM5 10V7l4-3h6l4 3v3M3 10h18"/><path d="M12 12v6m-3-3 3-3 3 3"/></svg><b>Open trunk</b><small>Parked only</small></button>
+            <button class="remote-button" data-command="flash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4-6 8 6 8M15 4l6 8-6 8M12 8v8"/></svg><b>Flash turns</b><small>One flash</small></button>
+            <button class="remote-button remote-immo-on" data-command="immo-on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a7 7 0 1 1 0 8M12 3v9"/><path d="m8 17 8-8"/></svg><b>IMMO ON</b><small>Block engine · parked only</small></button>
+            <button class="remote-button remote-immo-off" data-command="immo-off"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10M7.2 6.2a8 8 0 1 0 9.6 0"/></svg><b>IMMO OFF</b><small>Unblock engine</small></button>
+          </div>
+          <p class="help-line">Commands require a live tracker connection and are never queued. Trunk and IMMO ON require fresh parked-state data. CAN-CONTROL support depends on your vehicle. A command response does not verify the physical state.</p>
           <div id="remoteResult" class="result-box" hidden></div>
         </section>
       </section>
@@ -171,6 +178,6 @@
       <p class="help-line">Browser-based tokens are less isolated than backend secrets. Use a device-only ACL token and restrict allowed origins to your published app address.</p>
     </div>
   </dialog>
-  <script type="module" src="./app.js?v=1.4.7"></script>
+  <script type="module" src="./app.js?v=1.4.8"></script>
 </body>
 </html>
