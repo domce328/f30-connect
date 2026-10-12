@@ -1,21 +1,15 @@
-F30 Connect v1.4.4 — Photo Centering and Seamless Hero
+F30 Connect v1.4.6 — Full Hero Background
 
-Fixed:
-- online and ignition-on car photographs are centered on the same grille axis as the offline car
-- fades image edges in the assets themselves, so the hard image rectangle disappears
-- removes old inline !important sizing rules that blocked the previous CSS changes
-- preserves vehicle status pill position and all six customizable telemetry cards
+This patch changes the hero section to use the full matching scene image instead of a separate cutout plus synthetic background.
+The result is that the surrounding background around the car matches the photo and fills the whole iPhone screen width.
 
-Upload the CONTENTS of the patch ZIP to the GitHub repo ROOT (not the ZIP itself):
-- index.html       REPLACE
-- app.js           REPLACE
-- sw.js            REPLACE
-- f30-ui-v144.css  NEW
-- f30-offline-aligned-v144.webp  NEW
-- f30-online-aligned-v144.webp   NEW
-- f30-ignition-aligned-v144.webp NEW
+Replace these files in the repo root:
+- index.html
+- app.js
+- sw.js
+- f30-ui-v146.css
+- f30-scene-sleeping-v146.webp
+- f30-scene-online-v146.webp
+- f30-scene-ignition-v146.webp
 
-Do NOT upload README-PATCH.txt unless desired. You may leave old assets and CSS files in GitHub;
-the new index and app use versioned filenames.
-
-Note: The current 3 visual states depict device online + ignition telemetry, not independently measured headlight states.
+Then commit, wait for GitHub Pages, hard refresh desktop, and reopen Safari / the PWA on iPhone.
