@@ -1,0 +1,23 @@
+.parameter-history-dialog{width:min(760px,94vw);max-width:760px;max-height:90dvh;padding:0;border:1px solid #294359;border-radius:24px;background:#0d1b2c;color:#e7efff;overflow:auto}
+.parameter-history-dialog::backdrop{background:rgba(0,9,18,.8)}
+.history-dialog-content{padding:24px}
+.history-dialog-content .panel-title{align-items:flex-start;gap:16px}
+.history-dialog-content h2{font-size:22px;margin:0 0 6px}
+.history-dialog-content p{overflow-wrap:anywhere}
+.history-ranges{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}
+.history-ranges button[aria-pressed=true]{background:#80ccf2;color:#071725;border-color:#80ccf2}
+#historyReading{display:block;min-height:48px;padding:12px 0;font-weight:600;color:#bde8fc;font-variant-numeric:tabular-nums}
+#historyScrubber{width:100%;accent-color:#80ccf2;min-height:40px}
+#parameterHistoryChart svg{width:100%;touch-action:none;user-select:none;cursor:crosshair}
+#parameterHistoryChart,#batteryChart{height:auto;min-height:164px}
+#parameterHistoryChart svg,#batteryChart svg{display:block;height:auto;width:100%}
+.history-cursor{stroke:#8299b1;stroke-dasharray:4 4}
+.history-selected{fill:#80ccf2;stroke:#fff;stroke-width:2}
+.history-cursor[hidden],.history-selected[hidden]{display:none}
+[data-quick-card]{cursor:pointer}
+[data-quick-card]:focus-visible{outline:2px solid #80ccf2;outline-offset:4px}
+#graphSettingsForm .field-label{display:block;margin-top:14px}
+#dashboardGraphStatus:empty{display:none}
+#dashboardGraphField{overflow-wrap:anywhere;min-width:0}
+.panel-footer #viewParameterHistory{flex-shrink:0}
+@media(max-width:480px){.history-dialog-content{padding:18px}.history-dialog-content .panel-title{flex-wrap:wrap}.parameter-history-dialog{width:94vw}.history-ranges button{padding:10px 12px}}

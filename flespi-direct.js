@@ -210,6 +210,17 @@ export async function api(route,opts={}){
     }catch(error){deviceWarning=String(error.message||error).slice(0,240);}
     return {device,telemetry:telemetryReply.result?.[0]?.telemetry||{},deviceWarning,user:'This browser'};
   }
+  if(path==='/api/parameter-history'){
+    const field=url.searchParams.get('field');
+    if(!field||field.length>160||! /^[a-zA-Z0-9_.-]+$/.test(field)||field==='timestamp')throw new Error('Invalid history parameter');
+    const now=Math.floor(Date.now()/1000),days=Number(url.searchParams.get('days')||1);
+    if(![1,3,7].includes(days))throw new Error('Choose 1, 3 or 7 days');
+    const from=now-days*86400,count=1500;
+    const query=encodeURIComponent(JSON.stringify({from,to:now,reverse:true,count,fields:`timestamp,${field}`}));
+    const r=await queryFlespi(`${endpoint()}/messages?data=${query}`);
+    if(!Array.isArray(r.result))throw new Error('Unexpected parameter history response');
+    return {field,from,to:now,truncated:r.result.length>=count,messages:r.result.map(m=>({timestamp:m.timestamp,[field]:m[field]}))};
+  }
   if(path==='/api/history'){
     const now=Math.floor(Date.now()/1000),to=Number(url.searchParams.get('to')||now),from=Number(url.searchParams.get('from')||to-86400);
     if(!Number.isFinite(from)||!Number.isFinite(to)||from>=to||to>now+3600||to-from>7*86400)throw new Error('Invalid date range (maximum 7 days)');

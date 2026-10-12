@@ -92,3 +92,19 @@ test('null JSON returns a controlled format error',async()=>{
   const {app}=await fixture(()=>new Response('null'));
   await assert.rejects(app.api('/api/history'),/unexpected response format/);
 });
+test('parameter history requests only timestamp and the selected field',async()=>{
+  const {app,calls}=await fixture(()=>json([{timestamp:1,'can.engine.rpm':600,'position.latitude':54}]));
+  const r=await app.api('/api/parameter-history?field=can.engine.rpm&days=3');
+  const data=JSON.parse(new URL(calls[0].url).searchParams.get('data'));
+  assert.equal(data.fields,'timestamp,can.engine.rpm');assert.equal(data.count,1500);assert.equal(data.to-data.from,3*86400);
+  assert.deepEqual(Object.keys(r.messages[0]),['timestamp','can.engine.rpm']);
+});
+test('parameter history rejects injected fields and unsupported ranges',async()=>{
+  const {app,calls}=await fixture(()=>json([]));
+  for(const route of ['/api/parameter-history?field=timestamp','/api/parameter-history?field=foo,bar','/api/parameter-history?field=can.engine.rpm&days=30'])await assert.rejects(app.api(route));
+  assert.equal(calls.length,0);
+});
+test('parameter history reports the message limit as truncated',async()=>{
+  const {app}=await fixture(()=>json(Array.from({length:1500},(_,i)=>({timestamp:i,p:i}))));
+  assert.equal((await app.api('/api/parameter-history?field=p&days=7')).truncated,true);
+});

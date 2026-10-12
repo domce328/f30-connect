@@ -15,6 +15,7 @@
   <link rel="icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./f30-ui-v151.css">
   <title>F30 Connect</title>
+<link rel="stylesheet" href="./parameter-history.css">
 </head>
 <body class="f30-home-screen" data-car-state="sleeping">
   <div id="wallpaperLayer" class="wallpaper-layer" aria-hidden="true"></div>
@@ -55,9 +56,10 @@
           <div class="metric" data-quick-card="6"><div class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h2m2 0v-5h2v5m2 0V10h2v10m2 0V5h2v15m2 0V2h2v18"/></svg><span class="metric-label-text" id="quickMetricTitle6">GSM SIGNAL</span></div><div class="quick-metric-reading"><strong id="quickMetricValue6">—</strong><span class="metric-unit" id="quickMetricUnit6"></span></div><small id="quickMetricTime6">No recent reading</small></div>
         </div>
         <section class="panel">
-          <div class="panel-title"><div><h2>Vehicle battery</h2><p>Recorded supply voltage · last 24 hours</p></div><span class="circle-emblem">↗</span></div>
+          <div class="panel-title"><div><h2 id="dashboardGraphTitle">Vehicle battery</h2><p id="dashboardGraphSubtitle">Recorded supply voltage · last 24 hours</p></div><span class="circle-emblem">↗</span></div>
+          <p id="dashboardGraphStatus" class="help-line" role="status"></p>
           <div id="batteryChart" class="chart-outer"><div class="empty-chart">Select Refresh to load history</div></div>
-          <div class="panel-footer"><span>AVL 66 · external power supply</span><button class="inline-link" data-nav="trips">View history →</button></div>
+          <div class="panel-footer"><span id="dashboardGraphField">external.powersource.voltage</span><button class="inline-link" id="viewParameterHistory">View history →</button></div>
         </section>
         <section class="panel remote-panel">
           <div class="panel-title"><div><h2>Remote control</h2><p>CAN-CONTROL · immediate commands only</p></div><span class="circle-emblem shield">✓</span></div>
@@ -133,6 +135,17 @@
           </form>
           <div class="result-box" id="quickMetricsStatus" hidden role="status"></div>
         </section>
+        <section class="panel">
+          <div class="panel-title"><div><h2>Dashboard graph</h2><p>Choose the parameter shown on Home</p></div></div>
+          <form id="graphSettingsForm">
+            <label class="field-label" for="graphParameter">Recorded parameter</label><select class="filter-input" id="graphParameter"></select>
+            <label class="field-label" for="graphLabel">Display name (optional)</label><input class="filter-input" id="graphLabel" maxlength="48" placeholder="Use parameter name">
+            <label class="field-label" for="graphUnit">Unit (optional)</label><input class="filter-input" id="graphUnit" maxlength="16" placeholder="e.g. V, RPM, km/h">
+            <div class="photo-actions"><button class="upload-button" type="submit">Save dashboard graph</button></div>
+          </form>
+          <p class="help-line">Numeric and boolean fields from current telemetry are available. Missing history is shown explicitly. Unknown units can be entered manually.</p>
+          <p id="graphSettingsStatus" class="help-line" role="status"></p>
+        </section>
         <p class="settings-intro">Choose separate photos for your phone and desktop. F30 Connect automatically selects the portrait photo on phones and the landscape photo on wider screens.</p>
         <section class="panel">
           <div class="panel-title"><div><h2>Phone photo</h2><p>Portrait image · recommended 9:16</p></div></div>
@@ -191,6 +204,17 @@
       <p class="help-line">Browser-based tokens are less isolated than backend secrets. Use a device-only ACL token and restrict allowed origins to your published app address.</p>
     </div>
   </dialog>
-  <script type="module" src="./app.js?v=1.5.2"></script>
+  <dialog id="parameterHistoryDialog" class="parameter-history-dialog">
+    <div class="history-dialog-content">
+      <div class="panel-title"><div><h2 id="parameterHistoryTitle">Parameter history</h2><p id="historyField"></p></div><button type="button" class="secondary-button" id="closeParameterHistory" aria-label="Close parameter history">Close</button></div>
+      <div class="history-ranges" role="group" aria-label="History range"><button type="button" class="secondary-button" data-history-days="1">24 hours</button><button type="button" class="secondary-button" data-history-days="3">3 days</button><button type="button" class="secondary-button" data-history-days="7">7 days</button><button type="button" class="inline-link" id="refreshParameterHistory">Refresh</button></div>
+      <div id="parameterHistoryChart" class="chart-outer"></div>
+      <output id="historyReading" aria-live="polite"></output>
+      <label class="field-label" for="historyScrubber">Inspect recorded readings</label><input id="historyScrubber" type="range" min="0" max="0" value="0" disabled>
+      <p class="help-line">Drag across the graph or move the slider to inspect an exact reading. Times are shown in Vilnius time.</p>
+      <p id="historyNotice" class="help-line" role="status"></p>
+    </div>
+  </dialog>
+  <script type="module" src="./app.js?v=1.6.0"></script>
 </body>
 </html>

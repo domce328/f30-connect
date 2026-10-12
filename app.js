@@ -1,3 +1,4 @@
+import {setupParameterHistory} from './parameter-history.js';
 import {setupPhotoSettings} from './personalize.js';
 import {api,connect,setupConnectionUI,hasSession,refreshTrustUI} from './flespi-direct.js';
 /* F30 Connect — privacy-first, framework-free PWA. Real Flespi data only. */
@@ -51,6 +52,7 @@ function formatQuickValue(key,raw){
 }
 function renderQuickMetrics(){
   quickMetrics.forEach((item,i)=>{
+    const card=document.querySelector(`[data-quick-card="${i+1}"]`);if(card)card.dataset.historyField=item.key;
     const k=item.key,reading=state.telemetry?.[k],isPresent=reading&&Object.prototype.hasOwnProperty.call(reading,'value');
     const {value,unit}=formatQuickValue(k,isPresent?reading.value:null);
     setText(`quickMetricTitle${i+1}`,(item.label.trim()||fallbackLabel(k)).toUpperCase());
@@ -159,27 +161,8 @@ async function loadDashboard(force=false){
   })();
   return dashboardRequest;
 }
-let batteryHistory=[],lastBatteryFetch=0;
-function recentVoltage(){const rows=batteryHistory.length?batteryHistory:state.history;return rows.filter(m=>n(m['external.powersource.voltage'])!==null&&n(m.timestamp)!==null).sort((a,b)=>a.timestamp-b.timestamp).map(m=>({t:m.timestamp,v:n(m['external.powersource.voltage'])}));}
-async function loadBatteryHistory(force=false){
-  if(!hasSession()||(!force&&Date.now()-lastBatteryFetch<600000))return;
-  const now=Math.floor(Date.now()/1000);
-  try{const data=await api(`/api/history?mode=voltage&from=${now-86400}&to=${now}`);
-      batteryHistory=data.messages||[];lastBatteryFetch=Date.now();renderChart();
-  }catch(err){if(!batteryHistory.length)renderChart();/* Dashboard telemetry remains usable */ }
-}
-function renderChart(){const pts=recentVoltage().filter(p=>p.t>=Date.now()/1000-86400);const box=el('batteryChart');if(pts.length<2){box.innerHTML='<div class="empty-chart">Waiting for at least two voltage readings</div>';return;}
-  const data=pts.length>250?pts.filter((_,i)=>i%Math.ceil(pts.length/250)===0):pts;
-  const min=Math.min(...data.map(x=>x.v)),max=Math.max(...data.map(x=>x.v));const pad=Math.max(.06,(max-min)*.15);const lo=min-pad,hi=max+pad;
-  const W=460,H=160,L=30,R=8,T=10,B=25;
-  const x=t=>L+(t-data[0].t)/(data.at(-1).t-data[0].t||1)*(W-L-R);
-  const y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
-  const d=data.map((p,i)=>`${i?'L':'M'}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
-  const area=`${d} L${x(data.at(-1).t).toFixed(1)},${H-B} L${x(data[0].t).toFixed(1)},${H-B} Z`;
-  const ticks=[0,.5,1].map(f=>lo+(hi-lo)*f);
-  const lines=ticks.map(v=>`<line class="chart-grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="0" y="${y(v)+3}">${v.toFixed(2)}</text>`).join('');
-  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" aria-label="Voltage line chart" role="img">${lines}<path class="chart-area" d="${area}"/><path class="chart-path" d="${d}"/><circle class="last-dot" cx="${x(data.at(-1).t)}" cy="${y(data.at(-1).v)}" r="4"/><text x="${L}" y="${H-5}">${esc(fmtTime(data[0].t))}</text><text x="${W-R}" y="${H-5}" text-anchor="end">${esc(fmtTime(data.at(-1).t))}</text></svg>`;
-}
+function renderChart(){parameterHistory.render();}
+async function loadBatteryHistory(force=false){return parameterHistory.loadDashboard(force);}
 let lastHistoryFetch=0,loadedHistoryRange=0;
 async function loadHistory(days=1){if(!hasSession()||state.loading)return;if(state.history.length&&loadedHistoryRange===days&&Date.now()-lastHistoryFetch<300000){renderTrips();renderEvents();return;}state.loading=true;const now=Math.floor(Date.now()/1000);const from=now-days*86400;const url=`/api/history?from=${from}&to=${now}`;el('refreshTrips').disabled=true;el('refreshEvents').disabled=true;
   try{const data=await api(url);state.history=(data.messages||[]).slice().sort((a,b)=>Number(a.timestamp)-Number(b.timestamp));state.lastHistoryFrom=from;state.historyTruncated=!!data.truncated;lastHistoryFetch=Date.now();loadedHistoryRange=days;renderChart();renderTrips();renderEvents();}
@@ -292,7 +275,7 @@ async function executeAction(oneTapAction=null){
     if(hasSession())loadDashboard();
   }
 }
-function navigate(name){state.screen=name;document.body.classList.toggle('f30-home-screen',name==='dashboard');document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings'){renderQuickMetricSettings();refreshTrustUI();}if((name==='trips'||name==='events')&&hasSession())loadHistory(state.range);}
+function navigate(name){state.screen=name;document.body.classList.toggle('f30-home-screen',name==='dashboard');document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings'){renderQuickMetricSettings();parameterHistory.settings();refreshTrustUI();}if((name==='trips'||name==='events')&&hasSession())loadHistory(state.range);}
 function exportCsv(filename,rows){
   if(!rows.length){alert('No records in the currently loaded period.');return;}
   const keys=Array.from(new Set(rows.flatMap(r=>Object.keys(r))));
@@ -373,11 +356,13 @@ function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEven
   window.addEventListener('focus',()=>{if(hasSession()&&state.screen==='dashboard')loadDashboard();});
   setInterval(()=>{if(document.visibilityState==='visible'&&state.screen==='dashboard'&&hasSession())loadDashboard();},60000);
 }
+const parameterHistory=setupParameterHistory({api,hasSession,telemetry:()=>state.telemetry,metric:k=>quickMetrics.find(x=>x.key===k)});
 async function boot(){
   bind();
   setupPhotoSettings().catch(()=>{});
-  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.5.2').catch(()=>{});
+  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.6.0').catch(()=>{});
   await connect(async()=>{
+    parameterHistory.reset();
     // A throttled network must not invalidate a successfully unlocked browser.
     await loadDashboard();
     if(state.screen==='dashboard')await loadBatteryHistory();
