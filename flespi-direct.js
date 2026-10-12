@@ -3,6 +3,9 @@
    Warning: browser runtime secrets are weaker than a vetted server-side backend and can be exposed by XSS/extensions.
 */
 const STORAGE='f30-connect-flespi-credentials-v1';
+const TRUST_DB='f30-connect-browser-trust-v1';
+const TRUST_STORE='trust';
+const TRUST_ID='this-browser';
 const BASE='https://flespi.io';
 let sessionToken=null, deviceId=null, readyCallback=null, bound=false;
 const el=id=>document.getElementById(id);
@@ -27,6 +30,84 @@ async function decrypt(config,pass){
   const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes(config.iv)},key,bytes(config.ciphertext));
   return new TextDecoder().decode(raw);
 }
+
+// Optional trusted-browser login. The AES key is non-exportable and kept in this
+// browser's IndexedDB; the Flespi token remains encrypted at rest. A script
+// executing on this origin can still use this key. Only trust private devices.
+function openTrustDB(){
+  return new Promise((resolve,reject)=>{
+    if(typeof indexedDB==='undefined')return reject(new Error('IndexedDB is unavailable in this browser'));
+    const request=indexedDB.open(TRUST_DB,1);
+    request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(TRUST_STORE))request.result.createObjectStore(TRUST_STORE,{keyPath:'id'});};
+    request.onerror=()=>reject(new Error('Trusted browser storage could not be opened'));
+    request.onblocked=()=>reject(new Error('Trusted browser storage is blocked'));
+    request.onsuccess=()=>resolve(request.result);
+  });
+}
+async function readTrust(){
+  const db=await openTrustDB();
+  try{return await new Promise((resolve,reject)=>{
+    const req=db.transaction(TRUST_STORE,'readonly').objectStore(TRUST_STORE).get(TRUST_ID);
+    req.onsuccess=()=>resolve(req.result||null);
+    req.onerror=()=>reject(new Error('Could not read trusted browser credentials'));
+  });}finally{db.close();}
+}
+async function writeTrust(record){
+  const db=await openTrustDB();
+  try{await new Promise((resolve,reject)=>{
+    const tx=db.transaction(TRUST_STORE,'readwrite');
+    tx.objectStore(TRUST_STORE).put(record);
+    tx.oncomplete=()=>resolve();
+    tx.onabort=tx.onerror=()=>reject(new Error('Could not save trusted browser key'));
+  });}finally{db.close();}
+}
+async function removeTrust(){
+  const db=await openTrustDB();
+  try{await new Promise((resolve,reject)=>{
+    const tx=db.transaction(TRUST_STORE,'readwrite');
+    tx.objectStore(TRUST_STORE).delete(TRUST_ID);
+    tx.oncomplete=()=>resolve();
+    tx.onabort=tx.onerror=()=>reject(new Error('Could not revoke trusted browser access'));
+  });}finally{db.close();}
+}
+async function rememberTrustedBrowser(token,id){
+  const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(token));
+  await writeTrust({id:TRUST_ID,deviceId:id,credentialBinding:stored()?.ciphertext,key,iv:b64(iv),ciphertext:b64(ciphertext),createdAt:Date.now()});
+}
+async function restoreTrustedBrowser(){
+  if(!stored())return false;
+  try{
+    const record=await readTrust(),config=stored();
+    if(!record||!config||record.deviceId!==config.deviceId||record.credentialBinding!==config.ciphertext||!isDevice(record.deviceId))return false;
+    if(!record.key||record.key.extractable!==false)return false;
+    const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes(record.iv)},record.key,bytes(record.ciphertext));
+    const token=new TextDecoder().decode(raw);
+    if(!ascii.test(token))return false;
+    sessionToken=token;deviceId=record.deviceId;
+    return true;
+  }catch{
+    // Do not print browser encryption details or tokens to the console.
+    return false;
+  }
+}
+export async function refreshTrustUI(){
+  const status=el('trustedDeviceStatus'),revoke=el('revokeTrustedDevice'),enable=el('enableTrustSetup');
+  if(!status)return;
+  try{
+    const record=await readTrust();
+    const trusted=!!(record&&stored()?.deviceId===record.deviceId&&record.credentialBinding===stored()?.ciphertext);
+    status.textContent=trusted?'This browser is trusted. F30 Connect will open without asking for your passphrase.':'This browser is not trusted. Your encrypted token still requires its passphrase after restarting.';
+    if(revoke)revoke.disabled=!trusted;
+    if(enable)enable.textContent=trusted?'Update trusted login':'Enable automatic login';
+  }catch{
+    status.textContent='Trusted login storage is unavailable here. Normal passphrase login still works.';
+    if(revoke)revoke.disabled=true;
+    if(enable)enable.disabled=true;
+  }
+}
+
 async function queryFlespi(path,init={},token=sessionToken){
   if(!token)throw new Error('No Flespi token unlocked. Open the connection dialog.');
   // GET requests need no Content-Type. Avoid an unnecessary CORS preflight header.
@@ -186,24 +267,49 @@ export function setupConnectionUI(force=false){
   const dialog=el('connectionDialog');if(!dialog)return;
   const config=stored();
   el('flespiToken').value='';el('flespiPassphrase').value='';el('connectError').hidden=true;
+  el('rememberDevice').checked=false;
   el('flespiDeviceId').value=config?.deviceId||'9056049';
   el('connectMessage').textContent=config?'Enter your passphrase to unlock this browser, or enter a new restricted token to replace saved credentials.':'Paste a restricted token and choose a passphrase. The token is encrypted and stored only in this browser.';
   el('saveConnection').textContent=config?'Unlock / Replace':'Connect';
   if(!dialog.open)dialog.showModal();
 }
-export function connect(callback){
+export async function connect(callback){
   readyCallback=callback;
   if(!bound){bound=true;
     el('closeConnection').addEventListener('click',()=>el('connectionDialog').close());
-    el('forgetConnection').addEventListener('click',()=>{
-      if(!confirm('Remove the saved encrypted Flespi token from this browser?'))return;
-      localStorage.removeItem(STORAGE);sessionToken=null;deviceId=null;el('flespiToken').value='';el('flespiPassphrase').value='';el('connectMessage').textContent='Saved credentials removed. Create a new restricted Flespi token connection.';el('saveConnection').textContent='Connect';
+    el('enableTrustSetup')?.addEventListener('click',()=>setupConnectionUI(true));
+    el('revokeTrustedDevice')?.addEventListener('click',async()=>{
+      if(!confirm('Revoke automatic login for this browser and lock the current F30 Connect session?'))return;
+      const button=el('revokeTrustedDevice');button.disabled=true;
+      try{
+        await removeTrust();
+        sessionToken=null;deviceId=null;
+        await refreshTrustUI();
+        setupConnectionUI();
+      }catch(e){
+        el('trustedDeviceStatus').textContent=e.message||'Could not revoke trusted login';
+        button.disabled=false;
+      }
+    });
+    el('forgetConnection').addEventListener('click',async()=>{
+      if(!confirm('Forget this browser, including its saved token and automatic login key?'))return;
+      const error=el('connectError'),button=el('forgetConnection');button.disabled=true;error.hidden=true;
+      try{
+        await removeTrust();
+        localStorage.removeItem(STORAGE);
+        sessionToken=null;deviceId=null;
+        el('rememberDevice').checked=false;el('flespiToken').value='';el('flespiPassphrase').value='';
+        el('connectMessage').textContent='Saved credentials and trusted login removed. Paste your restricted Flespi token to reconnect.';
+        el('saveConnection').textContent='Connect';
+        await refreshTrustUI();
+      }catch(e){error.textContent=e.message||'Could not forget credentials';error.hidden=false;}
+      finally{button.disabled=false;}
     });
     el('saveConnection').addEventListener('click',async()=>{
       const button=el('saveConnection'),error=el('connectError');button.disabled=true;error.hidden=true;
       try{
         if(!globalThis.crypto?.subtle)throw new Error('Secure HTTPS required for encrypted credentials');
-        const config=stored(),enteredToken=el('flespiToken').value.trim(),pass=el('flespiPassphrase').value,id=el('flespiDeviceId').value.trim();
+        const config=stored(),enteredToken=el('flespiToken').value.trim(),pass=el('flespiPassphrase').value,id=el('flespiDeviceId').value.trim(),remember=el('rememberDevice').checked;
         if(!isDevice(id))throw new Error('Device ID must contain digits only');
         if(pass.length<10)throw new Error('Passphrase must be at least 10 characters');
         let token;
@@ -211,14 +317,22 @@ export function connect(callback){
         else {if(!config)throw new Error('Paste a restricted Flespi token');if(id!==config.deviceId)throw new Error('To change device ID, enter a new restricted token');try{token=await decrypt(config,pass);}catch{throw new Error('Incorrect passphrase or damaged local credentials');}}
         const test=await queryFlespi(`/gw/devices/${id}?fields=id,name,connected,last_active`,{},token);
         if(!test.result?.length)throw new Error('Token cannot access this device ID. Check Flespi ACL.');
+        if(enteredToken&&config){try{await removeTrust();}catch{/* Replaced encrypted token invalidates previous trust binding. */}}
         if(enteredToken){const secured=await encrypt(token,pass);localStorage.setItem(STORAGE,JSON.stringify({deviceId:id,...secured}));}
+        if(remember)await rememberTrustedBrowser(token,id);
         sessionToken=token;deviceId=id;
-        el('flespiToken').value='';el('flespiPassphrase').value='';el('connectionDialog').close();
+        el('flespiToken').value='';el('flespiPassphrase').value='';el('rememberDevice').checked=false;
+        el('connectionDialog').close();
+        await refreshTrustUI();
         if(readyCallback)await readyCallback();
       }catch(ex){error.textContent=String(ex.message||ex);error.hidden=false;}
       finally{button.disabled=false;}
     });
   }
-  if(!hasSession())setupConnectionUI();
+  if(!hasSession()){
+    const restored=await restoreTrustedBrowser();
+    if(restored){await refreshTrustUI();if(readyCallback)await readyCallback();}
+    else setupConnectionUI();
+  }
 }
 export const __test={validateCommand,thin,isDevice};
