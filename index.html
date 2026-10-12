@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1321">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="F30 Connect">
+  <meta name="description" content="Private BMW F30 telematics dashboard">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://flespi.io; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <title>F30 Connect</title>
+</head>
+<body>
+  <div id="wallpaperLayer" class="wallpaper-layer" aria-hidden="true"></div>
+  <div id="app">
+    <header class="topbar">
+      <div class="brandmark" aria-hidden="true"><svg viewBox="0 0 26 26"><path d="M4 17.5 8 10l4-3.5h8L23 17v4h-3.5v-3H7v3H4z"/><circle cx="8.5" cy="18" r="1.5"/><circle cx="19" cy="18" r="1.5"/></svg></div>
+      <div class="brand"><strong>F30<span>CONNECT</span></strong><small>FREE EDITION · PRIVATE TOKEN</small></div>
+      <button type="button" id="openConnection" class="icon-button" aria-label="Flespi connection" title="Flespi connection">⌁</button>
+      <div id="statusChip" class="status-pill"><i></i><span>Loading</span></div>
+      <button class="icon-button settings-launch" id="openSettings" aria-label="Personalization settings" title="Photos and settings"><svg viewBox="0 0 24 24"><path d="M12 3v2m0 14v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M3 12h2m14 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/><circle cx="12" cy="12" r="4"/></svg></button>
+    </header>
+    <main>
+      <section id="dashboardScreen" class="screen active" aria-label="Dashboard">
+        <div class="section-head"><div><p class="eyebrow">YOUR VEHICLE</p><h1>BMW 328i <span>F30</span></h1></div><button class="icon-button" id="refreshDashboard" aria-label="Refresh dashboard" title="Refresh"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6M20 4v7h-7"/></svg></button></div>
+        <div class="hero">
+          <div class="hero-top"><span class="hero-tag">2015 • CAN-CONTROL</span><span class="hero-tag subtle">FMC130</span></div>
+          <svg class="car-art" viewBox="0 0 360 135" role="img" aria-label="BMW sedan illustration"><defs><linearGradient id="carFill" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#cbd7e0"/><stop offset="0.45" stop-color="#667c90"/><stop offset="1" stop-color="#283d56"/></linearGradient><linearGradient id="window" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#223e54"/><stop offset="1" stop-color="#071525"/></linearGradient></defs><ellipse cx="180" cy="116" rx="157" ry="14" fill="#010916" opacity=".48"/><path d="M24 86 48 75l34-6 36-37 13-5 96 0 28 38 40 8 29 11 10 17-4 13H28L17 106z" fill="url(#carFill)" stroke="#d5e7ed" stroke-width="1.7"/><path d="M96 68 126 35h47v34zM179 35h44l24 33h-68z" fill="url(#window)" stroke="#9cb4c2" stroke-width="1.5"/><path d="m180 35 1 34" stroke="#d1dce6" stroke-width="2"/><path d="M35 79h31v8H30M284 75l32 9-31 1" stroke="#e6f6f7" stroke-width="4"/><path d="M23 89h18M294 87h33" stroke="#d6f2f5" stroke-width="2"/><path d="M36 104h283" stroke="#172c42" stroke-width="3"/><circle cx="88" cy="107" r="22" fill="#111c2a" stroke="#7c93a3" stroke-width="5"/><circle cx="88" cy="107" r="11" fill="#cad6dc"/><circle cx="88" cy="107" r="4" fill="#415769"/><circle cx="267" cy="107" r="22" fill="#111c2a" stroke="#7c93a3" stroke-width="5"/><circle cx="267" cy="107" r="11" fill="#cad6dc"/><circle cx="267" cy="107" r="4" fill="#415769"/></svg>
+          <div class="hero-bottom"><div><span class="tiny-label">LATEST LOCATION</span><div id="locationText" class="location-text">Waiting for data</div><button id="lastLocationMap" class="hero-map-link" hidden>View location in Maps ↗</button></div><span id="lastSeen" class="last-seen">—</span></div>
+        </div>
+        <div id="notice" class="notice" hidden role="status"></div>
+        <div class="metric-grid">
+          <div class="metric"><div class="metric-label"><svg viewBox="0 0 24 24"><path d="M4 8h15v10H4zM20 11h2v4h-2M8 5l-2 3"/></svg> EXTERNAL VOLTAGE</div><div><strong id="voltageValue">—</strong><span class="metric-unit">V</span></div><small id="voltageTime">No recent reading</small></div>
+          <div class="metric"><div class="metric-label"><svg viewBox="0 0 24 24"><path d="M12 2v9M7 4a9 9 0 1 0 10 0"/></svg> IGNITION</div><div><strong id="ignitionValue">—</strong></div><small id="ignitionTime">No recent reading</small></div>
+          <div class="metric"><div class="metric-label"><svg viewBox="0 0 24 24"><path d="M4 19V8l8-5 8 5v11M3 19h18"/></svg> CAN ENGINE SPEED</div><div><strong id="rpmValue">—</strong><span class="metric-unit">RPM</span></div><small id="rpmTime">Latest CAN reading</small></div>
+          <div class="metric"><div class="metric-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12 17 8M5 17h14"/></svg> GPS SPEED</div><div><strong id="speedValue">—</strong><span class="metric-unit">km/h</span></div><small id="speedTime">Latest location reading</small></div>
+        </div>
+        <section class="panel">
+          <div class="panel-title"><div><h2>Vehicle battery</h2><p>Recorded supply voltage · last 24 hours</p></div><span class="circle-emblem">↗</span></div>
+          <div id="batteryChart" class="chart-outer"><div class="empty-chart">Select Refresh to load history</div></div>
+          <div class="panel-footer"><span>AVL 66 · external power supply</span><button class="inline-link" data-nav="trips">View history →</button></div>
+        </section>
+        <section class="panel remote-panel">
+          <div class="panel-title"><div><h2>Remote control</h2><p>CAN-CONTROL · immediate commands only</p></div><span class="circle-emblem shield">✓</span></div>
+          <div class="remote-buttons"><button id="lockButton" class="remote-button" data-command="lock"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><b>Lock doors</b><small>Send now</small></button><button id="unlockButton" class="remote-button" data-command="unlock"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0V8"/></svg><b>Unlock doors</b><small>Send now</small></button></div>
+          <p class="help-line">Commands are rejected if the tracker is offline, never queued for later execution.</p>
+          <div id="remoteResult" class="result-box" hidden></div>
+        </section>
+      </section>
+      <section id="tripsScreen" class="screen" aria-label="Trips">
+        <div class="section-head"><div><p class="eyebrow">MOVEMENT & HISTORY</p><h1>Trips <span>& route</span></h1></div><button class="icon-button" id="refreshTrips" aria-label="Refresh trips"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6M20 4v7h-7"/></svg></button></div>
+        <div class="segment"><button class="selected" data-range="1">Today</button><button data-range="2">2 days</button><button data-range="7">7 days</button></div>
+        <div class="trip-summary"><span id="tripTotal">— km</span><small id="tripCount">No trip data loaded</small></div><button id="exportHistory" class="export-button">↓ Export displayed telemetry CSV</button>
+        <div id="tripsList" class="list-stack"><div class="empty-state">Your trips will appear after loading history.</div></div>
+        <p class="footnote">Trips are estimated from recorded GNSS positions and speed. Low-frequency or missing position data can underestimate distance.</p>
+      </section>
+      <section id="eventsScreen" class="screen" aria-label="Crash events">
+        <div class="section-head"><div><p class="eyebrow">SAFETY TELEMETRY</p><h1>Crash <span>events</span></h1></div><button class="icon-button" id="refreshEvents" aria-label="Refresh crash events"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6M20 4v7h-7"/></svg></button></div>
+        <div class="warning-banner"><svg viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3ZM12 9v5m0 3v1"/></svg><div><b>Detection isn't confirmation</b><small>A pothole or road shock can trigger the crash scenario. Every event should be interpreted in context.</small></div></div>
+        <div class="event-counter"><span id="eventsCount">—</span><div><b>Recorded triggers</b><p id="eventsRange">Within selected history window</p></div></div><button id="exportEvents" class="export-button">↓ Export crash event CSV</button>
+        <div id="eventsList" class="list-stack"><div class="empty-state">Crash events from decoded Flespi messages appear here.</div></div>
+      </section>
+      <section id="diagnosticsScreen" class="screen" aria-label="Diagnostics">
+        <div class="section-head"><div><p class="eyebrow">ENGINEERING CONSOLE</p><h1>Diagnostics</h1></div><button class="icon-button" id="refreshDiagnostics" aria-label="Refresh diagnostics"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6M20 4v7h-7"/></svg></button></div>
+        <section class="panel"><div class="panel-title"><div><h2>Device information</h2><p>Direct from Flespi device state</p></div></div><div class="detail-table" id="deviceDetails"><div class="empty-state">Waiting for device information</div></div></section>
+        <section class="panel"><div class="panel-title"><div><h2>Read-only GPRS diagnostics</h2><p>10-minute queue expiration</p></div></div><div class="diag-actions"><button data-diag="getinfo">Get device info <span>↗</span></button><button data-diag="getstatus">Get network status <span>↗</span></button><button data-diag="sleepSettings">Read sleep settings <span>↗</span></button><button data-diag="crashSettings">Read crash settings <span>↗</span></button></div><div id="diagnosticResult" class="result-box" hidden></div></section>
+        <section class="panel console-panel" id="commandConsole">
+          <div class="panel-title"><div><h2>Custom GPRS commands</h2><p>Read parameters quickly, or apply settings with confirmation</p></div></div>
+          <div class="console-shortcuts" id="commandShortcuts">
+            <button type="button" data-preset="getinfo">getinfo</button>
+            <button type="button" data-preset="getstatus">getstatus</button>
+            <button type="button" data-preset="getparam 101;102;103;1000">Sleep settings</button>
+            <button type="button" data-preset="getparam 11400;11401;11402">Crash settings</button>
+            <button type="button" data-preset="readio 239">Ignition</button>
+            <button type="button" data-preset="readio 66">Voltage</button>
+          </div>
+          <label class="field-label" for="customCommand">Command</label>
+          <textarea id="customCommand" class="console-input" rows="2" maxlength="240" placeholder="getparam 101;102;103 or setparam 11401:50" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+          <div class="console-actions"><button class="submit-button" id="sendCustomCommand" type="button">Send command ↗</button><button class="secondary-button" id="saveCommandShortcut" type="button" disabled>☆ Save read shortcut</button></div>
+          <p class="help-line">Read commands may queue for up to 10 minutes. <code>setparam</code> is sent only if the device is currently connected and you type APPLY. Lock and unlock use the dedicated controls. Other commands are intentionally blocked.</p>
+          <div id="customCommandResult" class="result-box" hidden role="status"></div>
+          <div id="savedShortcuts" class="saved-shortcuts" hidden></div>
+        </section>
+        <section class="panel"><div class="panel-title"><div><h2>App command history</h2><p>Queued diagnostic and executed results</p></div><button class="inline-link" id="refreshCommands">Refresh</button></div><div id="commandHistory" class="list-stack compact"><div class="empty-state">Nothing loaded yet</div></div></section>
+        <section class="panel"><div class="panel-title"><div><h2>Raw telemetry</h2><p>Latest value and its last-update time</p></div></div><input id="telemetryFilter" class="filter-input" type="search" placeholder="Filter e.g. can, crash, voltage" aria-label="Filter telemetry parameters" autocomplete="off"><div class="raw-list" id="rawTelemetry"></div></section>
+      </section>
+      <section id="settingsScreen" class="screen" aria-label="Personalization settings">
+        <div class="section-head"><div><p class="eyebrow">PERSONALIZATION</p><h1>My BMW <span>photos</span></h1></div><button class="icon-button" id="backFromSettings" aria-label="Back to dashboard"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button></div>
+        <p class="settings-intro">Choose separate photos for your phone and desktop. F30 Connect automatically selects the portrait photo on phones and the landscape photo on wider screens.</p>
+        <section class="panel">
+          <div class="panel-title"><div><h2>Phone photo</h2><p>Portrait image · recommended 9:16</p></div></div>
+          <div class="photo-preview" id="portraitPreview"><span>No phone photo selected</span></div>
+          <div class="photo-actions"><label class="upload-button">Choose portrait image<input id="uploadPortrait" type="file" accept="image/*" hidden></label><button class="secondary-button" id="removePortrait">Remove</button></div>
+        </section>
+        <section class="panel">
+          <div class="panel-title"><div><h2>Desktop photo</h2><p>Landscape image · recommended 16:9</p></div></div>
+          <div class="photo-preview wide" id="landscapePreview"><span>No desktop photo selected</span></div>
+          <div class="photo-actions"><label class="upload-button">Choose landscape image<input id="uploadLandscape" type="file" accept="image/*" hidden></label><button class="secondary-button" id="removeLandscape">Remove</button></div>
+        </section>
+        <section class="panel">
+          <div class="panel-title"><div><h2>Photo appearance</h2><p>These preferences apply to this browser</p></div></div>
+          <label class="field-label" for="photoPlacement">Show photos</label>
+          <select id="photoPlacement" class="filter-input"><option value="hero">Only in vehicle hero card</option><option value="both">Hero card + dark dashboard wallpaper</option><option value="wallpaper">Dashboard wallpaper only</option></select>
+          <label class="range-label" for="photoDim">Wallpaper darkness <output id="photoDimValue">76%</output></label>
+          <input class="range-input" id="photoDim" type="range" min="35" max="92" step="1" value="76">
+          <label class="range-label" for="photoBlur">Wallpaper blur <output id="photoBlurValue">6 px</output></label>
+          <input class="range-input" id="photoBlur" type="range" min="0" max="20" step="1" value="6">
+          <p id="photoStorageStatus" class="help-line" role="status">Checking photo storage…</p>
+          <div id="photoResult" class="result-box" hidden role="status"></div>
+        </section>
+        <p class="footnote">Photo uploads are resized in your browser (up to 1920px) before saving. Photos stay on this browser only; upload a separate photo on each device.</p>
+      </section>
+    </main>
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <button class="active" data-nav="dashboard" aria-current="page"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v10H3V11zM9 21v-7h6v7"/></svg><span>Home</span></button>
+      <button data-nav="trips"><svg viewBox="0 0 24 24"><path d="m3 18 7-13 4 6 7-5M4 4v5h5"/></svg><span>Trips</span></button>
+      <button data-nav="events"><svg viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3ZM12 9v5m0 3v1"/></svg><span>Events</span></button>
+      <button data-nav="diagnostics"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM7 9l3 3-3 3m5 0h5"/></svg><span>Tools</span></button>
+    </nav>
+  </div>
+  <dialog id="commandDialog" class="dialog"><form method="dialog"><div class="dialog-icon" id="dialogIcon">🔒</div><h2 id="dialogTitle">Confirm action</h2><p id="dialogDesc">For safety, type the action to confirm.</p><label for="confirmInput">Type <b id="confirmWord">LOCK</b> to proceed</label><input id="confirmInput" type="text" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="text"><div class="dialog-buttons"><button value="cancel" class="cancel-button">Cancel</button><button id="dialogSubmit" type="button" class="submit-button" disabled>Send command</button></div></form></dialog>
+  <dialog id="writeDialog" class="dialog"><form method="dialog"><div class="dialog-icon">⚙</div><h2>Apply tracker configuration?</h2><p>This writes parameters to the FMC130. Incorrect settings may interfere with reporting, CAN-CONTROL, or crash detection. The command will not be queued if the device is offline.</p><div class="command-preview" id="writePreview"></div><label for="writeConfirmInput">Type <b>APPLY</b> to send now</label><input id="writeConfirmInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"><div class="dialog-buttons"><button value="cancel" class="cancel-button">Cancel</button><button id="writeSubmit" type="button" class="submit-button" disabled>Apply settings</button></div></form></dialog>
+  <dialog id="connectionDialog" class="dialog connection-dialog">
+    <div class="connect-inner">
+      <div class="dialog-icon">🔐</div>
+      <h2>Connect to Flespi</h2>
+      <p id="connectMessage">Use a restricted Flespi token. It will be encrypted in this browser using your passphrase and never uploaded to the website host.</p>
+      <label for="flespiDeviceId">Flespi device ID</label>
+      <input id="flespiDeviceId" type="text" value="9056049" inputmode="numeric" autocomplete="off" maxlength="16" />
+      <label for="flespiToken">Flespi API token (first setup only)</label>
+      <input id="flespiToken" type="password" placeholder="Paste your restricted Flespi token" autocomplete="off" spellcheck="false" />
+      <label for="flespiPassphrase">App passphrase (minimum 10 characters)</label>
+      <input id="flespiPassphrase" type="password" autocomplete="off" minlength="10" placeholder="Enter your private passphrase" />
+      <div class="dialog-buttons">
+        <button type="button" class="cancel-button" id="closeConnection">Close</button>
+        <button type="button" class="submit-button" id="saveConnection">Connect</button>
+      </div>
+      <button type="button" class="inline-link remove-connection" id="forgetConnection">Forget saved credentials</button>
+      <div id="connectError" class="result-box" role="status" hidden></div>
+      <p class="help-line">Browser-based tokens are less isolated than backend secrets. Use a device-only ACL token and restrict allowed origins to your published app address.</p>
+    </div>
+  </dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
