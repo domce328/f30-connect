@@ -1,4 +1,4 @@
-# F30 Connect — FREE GitHub Pages edition
+# F30 Connect
 
 **No Cloudflare, no paid hosting, no npm or Node.js required.** Uses Flespi's browser REST API directly. Built for FMC130 + CAN-CONTROL in BMW F30.
 
