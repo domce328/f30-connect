@@ -1,6 +1,6 @@
 // Intentionally cache only the static application shell — NEVER cache telemetry, locations or API replies.
-const CACHE='f30-connect-v150-lean-history-shell';
-const FILES=['./','./index.html','./f30-ui-v150.css','./app.js?v=1.5.0','./flespi-direct.js','./personalize.js','./manifest.webmanifest','./icons/icon-192.png','./f30-stage-offline-v147.webp','./f30-stage-online-v147.webp','./f30-stage-ignition-v147.webp'];
+const CACHE='f30-connect-v151-fix-states-shell';
+const FILES=['./','./index.html','./f30-ui-v151.css','./app.js?v=1.5.1','./flespi-direct.js','./personalize.js','./manifest.webmanifest','./icons/icon-192.png','./f30-stage-offline-v147.webp','./f30-stage-online-v147.webp','./f30-stage-ignition-v147.webp'];
 self.addEventListener('install', e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES.map(p=>new URL(p,self.registration.scope)))).catch(()=>{}));self.skipWaiting();});
 self.addEventListener('activate', e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
 self.addEventListener('fetch',e=>{
