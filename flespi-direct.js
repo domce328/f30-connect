@@ -77,7 +77,7 @@ export async function api(route,opts={}){
   if(!hasSession())throw new Error('Connect to Flespi first. Use the connection button in the header.');
   const url=new URL(route,'https://app.local');const path=url.pathname;
   if(path==='/api/dashboard'){
-    const [d,t]=await Promise.all([queryFlespi(`${endpoint()}?fields=id,name,connected,last_active`),queryFlespi(`${endpoint()}/telemetry`)]);
+    const [d,t]=await Promise.all([queryFlespi(`${endpoint()}?fields=id,name,connected,last_active`),queryFlespi(`${endpoint()}/telemetry/all`)]);
     return {device:d.result?.[0]||null,telemetry:t.result?.[0]?.telemetry||{},user:'This browser'};
   }
   if(path==='/api/history'){
