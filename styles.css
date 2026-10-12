@@ -48,3 +48,15 @@ body.photo-hero .hero .hero-bottom{border-top-color:#ffffff59}
 
 /* Free browser-only connection dialog */
 .connection-dialog{max-width:420px;width:calc(100% - 32px);max-height:90dvh;overflow:auto;border:1px solid rgba(135,164,195,.45);background:#111e30;color:#e9f4ff;padding:22px;border-radius:20px;box-sizing:border-box}.connection-dialog::backdrop{background:rgba(1,8,20,.84)}.connect-inner{display:flex;flex-direction:column;gap:10px}.connect-inner>label{font-size:13px;color:#b5cbe0;margin-top:7px}.connect-inner input{width:100%;box-sizing:border-box;border:1px solid #476078;border-radius:10px;background:#0b1624;color:#fff;padding:12px;font-size:16px}.connect-inner .help-line{font-size:12px;line-height:1.5}.connect-inner .dialog-buttons{display:flex;gap:10px;align-items:center;margin-top:12px}.connect-inner .dialog-buttons button{flex:1}.remove-connection{align-self:center;margin-top:7px;color:#c3d8ed}.connection-dialog p{line-height:1.5}#openConnection{font-size:24px;line-height:1}
+/* v1.3: six quick metrics; existing card appearance preserved on phones and desktops. */
+.metric-label .metric-label-text{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quick-metric-reading{display:flex;align-items:baseline;min-width:0;gap:1px;overflow:hidden}
+.quick-metric-reading strong{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quick-metrics-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:14px 0}
+.quick-settings-row{background:#14243a;border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}
+.quick-settings-heading{font-size:12px;font-weight:750;margin-bottom:10px;color:#d9edff}
+.quick-settings-row .field-label{display:block;font-size:10px;margin-top:9px;color:#aec4d7}
+.quick-settings-row .filter-input{margin:6px 0 0;font-size:12px;padding:10px;min-width:0}
+.quick-settings-panel .photo-actions{flex-wrap:wrap}
+@media(max-width:560px){.quick-metrics-settings{grid-template-columns:1fr}.metric{padding:12px}.metric strong{font-size:25px}.metric-label{font-size:8px;letter-spacing:.03em}.metric-label svg{width:15px;height:15px}.metric-unit{font-size:10px}}
+@media(max-width:360px){.metric strong{font-size:22px}.metric-label{font-size:7.5px}}

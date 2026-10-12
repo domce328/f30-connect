@@ -17,14 +17,81 @@ const tele=k=>state.telemetry?.[k]?.value;
 const teleTime=k=>state.telemetry?.[k]?.ts;
 function first(keys){for(const k of keys) if(tele(k)!==undefined&&tele(k)!==null)return {value:tele(k),ts:teleTime(k)};return {value:null,ts:null};}
 function metric(valueId,timeId,keys,format){const {value,ts}=first(keys);setText(valueId,value===null?'—':format(value));setText(timeId,ts?fmtAgo(ts):'No reading');}
+// Six stable home cards. Labels and selections are local UI preferences, never tracker configuration.
+const QUICK_METRIC_KEY='f30-connect-quick-metrics-v1';
+const QUICK_DEFAULTS=[
+  {key:'external.powersource.voltage',label:'External Voltage'},
+  {key:'engine.ignition.status',label:'Ignition'},
+  {key:'can.engine.rpm',label:'CAN Engine Speed'},
+  {key:'position.speed',label:'GPS Speed'},
+  {key:'can.vehicle.odometer',label:'CAN Odometer'},
+  {key:'gsm.signal.level',label:'GSM Signal'}
+];
+function loadQuickMetrics(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(QUICK_METRIC_KEY)||'null');
+    if(!Array.isArray(raw)||raw.length!==6)return QUICK_DEFAULTS.map(x=>({...x}));
+    return raw.map((x,i)=>({key:typeof x?.key==='string'&&x.key.length<=160?x.key:QUICK_DEFAULTS[i].key,label:typeof x?.label==='string'?x.label.slice(0,48):QUICK_DEFAULTS[i].label}));
+  }catch{return QUICK_DEFAULTS.map(x=>({...x}));}
+}
+let quickMetrics=loadQuickMetrics();
+function fallbackLabel(key){return String(key||'Unused').replace(/[._]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());}
+function formatQuickValue(key,raw){
+  if(raw===null||raw===undefined)return {value:'—',unit:''};
+  if(key==='engine.ignition.status')return {value:truth(raw)?'ON':'OFF',unit:''};
+  if(typeof raw==='boolean')return {value:raw?'TRUE':'FALSE',unit:''};
+  const units={'external.powersource.voltage':'V','external.battery.voltage':'V','battery.voltage':'V','can.engine.rpm':'RPM','position.speed':'km/h','can.vehicle.speed':'km/h'};
+  const unit=units[key]||'';
+  if(typeof raw==='number'&&Number.isFinite(raw)){
+    const digits=/voltage/.test(key)?3:/latitude|longitude/.test(key)?5:/speed|rpm/.test(key)?0:2;
+    return {value:raw.toLocaleString('en-GB',{maximumFractionDigits:digits}),unit};
+  }
+  if(typeof raw==='string')return {value:raw.slice(0,80)||'—',unit};
+  return {value:JSON.stringify(raw).slice(0,80),unit};
+}
+function renderQuickMetrics(){
+  quickMetrics.forEach((item,i)=>{
+    const k=item.key,reading=state.telemetry?.[k],isPresent=reading&&Object.prototype.hasOwnProperty.call(reading,'value');
+    const {value,unit}=formatQuickValue(k,isPresent?reading.value:null);
+    setText(`quickMetricTitle${i+1}`,(item.label.trim()||fallbackLabel(k)).toUpperCase());
+    setText(`quickMetricValue${i+1}`,value);
+    setText(`quickMetricUnit${i+1}`,unit);
+    setText(`quickMetricTime${i+1}`,isPresent&&reading.ts?fmtAgo(reading.ts):'No recent reading');
+  });
+}
+function renderQuickMetricSettings(){
+  const container=el('quickMetricsSettings');if(!container)return;
+  const allKeys=Object.keys(state.telemetry||{}).sort((a,b)=>a.localeCompare(b));
+  const keys=[...new Set([...allKeys,...quickMetrics.map(x=>x.key).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
+  container.innerHTML=quickMetrics.map((item,i)=>`<div class="quick-settings-row">
+    <div class="quick-settings-heading">Card ${i+1}</div>
+    <label class="field-label" for="quickKey${i}">Raw telemetry parameter</label>
+    <select class="filter-input" id="quickKey${i}" data-quick-key="${i}">
+      <option value="">— No parameter —</option>
+      ${keys.map(k=>`<option value="${esc(k)}"${k===item.key?' selected':''}>${esc(k)}${allKeys.includes(k)?'':' (not in latest telemetry)'}</option>`).join('')}
+    </select>
+    <label class="field-label" for="quickLabel${i}">Displayed name (optional)</label>
+    <input class="filter-input" id="quickLabel${i}" maxlength="48" placeholder="e.g. Battery voltage" value="${esc(item.label)}" autocomplete="off">
+  </div>`).join('');
+  const msg=el('quickMetricsStatus');
+  if(!allKeys.length){msg.hidden=false;msg.textContent='No telemetry loaded yet. Connect to Flespi, then return here to see available parameter names.';}
+  else{msg.hidden=true;msg.textContent='';}
+}
+function saveQuickMetrics(){
+  const result=QUICK_DEFAULTS.map((defaultItem,i)=>({
+    key:el(`quickKey${i}`).value,
+    label:el(`quickLabel${i}`).value.trim().slice(0,48)
+  }));
+  try{localStorage.setItem(QUICK_METRIC_KEY,JSON.stringify(result));}
+  catch{const msg=el('quickMetricsStatus');msg.hidden=false;msg.textContent='Could not save card settings in this browser.';return;}
+  quickMetrics=result;renderQuickMetrics();
+  const msg=el('quickMetricsStatus');msg.hidden=false;msg.textContent='Saved. The six Home screen cards now use your selected telemetry fields and names.';
+}
 function renderStatus(){const pill=el('statusChip');pill.className='status-pill '+(state.device?' '+(state.online?'live':'offline'):'error');pill.querySelector('span').textContent=state.device?(state.online?'Connected':'Offline'):'Not ready';}
 function renderDashboard(){
   state.online=state.device?.connected===true;
   renderStatus();
-  metric('voltageValue','voltageTime',['external.powersource.voltage','external.battery.voltage'],x=>fmtN(x,3));
-  const ign=first(['engine.ignition.status']);setText('ignitionValue',ign.value===null?'—':truth(ign.value)?'ON':'OFF');setText('ignitionTime',fmtAgo(ign.ts));
-  metric('rpmValue','rpmTime',['can.engine.rpm'],v=>fmtN(v,0));
-  metric('speedValue','speedTime',['position.speed','can.vehicle.speed'],v=>fmtN(v,0));
+  renderQuickMetrics();
   const lat=n(first(['position.latitude']).value),lon=n(first(['position.longitude']).value);
   const loc=el('locationText');loc.textContent=lat!==null&&lon!==null?`${lat.toFixed(5)}, ${lon.toFixed(5)}`:'Location unavailable';
   const map=el('lastLocationMap');map.hidden=lat===null||lon===null;if(!map.hidden)map.dataset.point=`${lat},${lon}`;
@@ -119,7 +186,7 @@ async function executeAction(){const action=state.pendingAction;if(!action)retur
     else result('remoteResult',`Device response: ${data.command?.response||'Command accepted; no explicit response shown.'}\n${data.note}`);
   }catch(err){result('remoteResult',`Command NOT confirmed: ${err.message}`);}
   finally{state.pendingAction=null;await loadDashboard();}}
-function navigate(name){state.screen=name;document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();}
+function navigate(name){state.screen=name;document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings')renderQuickMetricSettings();}
 function exportCsv(filename,rows){
   if(!rows.length){alert('No records in the currently loaded period.');return;}
   const keys=Array.from(new Set(rows.flatMap(r=>Object.keys(r))));
@@ -168,6 +235,8 @@ function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEven
   el('openSettings').addEventListener('click',()=>navigate('settings'));
   el('openConnection').addEventListener('click',()=>setupConnectionUI(true));
   el('backFromSettings').addEventListener('click',()=>navigate('dashboard'));
+  el('quickMetricsForm').addEventListener('submit',e=>{e.preventDefault();saveQuickMetrics();});
+  el('resetQuickMetrics').addEventListener('click',()=>{quickMetrics=QUICK_DEFAULTS.map(x=>({...x}));try{localStorage.removeItem(QUICK_METRIC_KEY);}catch{}renderQuickMetricSettings();renderQuickMetrics();const msg=el('quickMetricsStatus');msg.hidden=false;msg.textContent='Restored the six default dashboard cards.';});
   document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>{el('customCommand').value=button.dataset.preset;commandChanged();el('customCommand').focus();}));
   el('customCommand').addEventListener('input',commandChanged);
   el('saveCommandShortcut').addEventListener('click',()=>{

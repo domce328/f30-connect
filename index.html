@@ -35,11 +35,13 @@
           <div class="hero-bottom"><div><span class="tiny-label">LATEST LOCATION</span><div id="locationText" class="location-text">Waiting for data</div><button id="lastLocationMap" class="hero-map-link" hidden>View location in Maps ↗</button></div><span id="lastSeen" class="last-seen">—</span></div>
         </div>
         <div id="notice" class="notice" hidden role="status"></div>
-        <div class="metric-grid">
-          <div class="metric"><div class="metric-label"><svg viewBox="0 0 24 24"><path d="M4 8h15v10H4zM20 11h2v4h-2M8 5l-2 3"/></svg> EXTERNAL VOLTAGE</div><div><strong id="voltageValue">—</strong><span class="metric-unit">V</span></div><small id="voltageTime">No recent reading</small></div>
-          <div class="metric"><div class="metric-label"><svg viewBox="0 0 24 24"><path d="M12 2v9M7 4a9 9 0 1 0 10 0"/></svg> IGNITION</div><div><strong id="ignitionValue">—</strong></div><small id="ignitionTime">No recent reading</small></div>
-          <div class="metric"><div class="metric-label"><svg viewBox="0 0 24 24"><path d="M4 19V8l8-5 8 5v11M3 19h18"/></svg> CAN ENGINE SPEED</div><div><strong id="rpmValue">—</strong><span class="metric-unit">RPM</span></div><small id="rpmTime">Latest CAN reading</small></div>
-          <div class="metric"><div class="metric-label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12 17 8M5 17h14"/></svg> GPS SPEED</div><div><strong id="speedValue">—</strong><span class="metric-unit">km/h</span></div><small id="speedTime">Latest location reading</small></div>
+        <div class="metric-grid" id="quickMetricGrid">
+          <div class="metric" data-quick-card="1"><div class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h15v10H4zM20 11h2v4h-2M8 5l-2 3"/></svg><span class="metric-label-text" id="quickMetricTitle1">EXTERNAL VOLTAGE</span></div><div class="quick-metric-reading"><strong id="quickMetricValue1">—</strong><span class="metric-unit" id="quickMetricUnit1"></span></div><small id="quickMetricTime1">No recent reading</small></div>
+          <div class="metric" data-quick-card="2"><div class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v9M7 4a9 9 0 1 0 10 0"/></svg><span class="metric-label-text" id="quickMetricTitle2">IGNITION</span></div><div class="quick-metric-reading"><strong id="quickMetricValue2">—</strong><span class="metric-unit" id="quickMetricUnit2"></span></div><small id="quickMetricTime2">No recent reading</small></div>
+          <div class="metric" data-quick-card="3"><div class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V8l8-5 8 5v11M3 19h18"/></svg><span class="metric-label-text" id="quickMetricTitle3">CAN ENGINE SPEED</span></div><div class="quick-metric-reading"><strong id="quickMetricValue3">—</strong><span class="metric-unit" id="quickMetricUnit3"></span></div><small id="quickMetricTime3">No recent reading</small></div>
+          <div class="metric" data-quick-card="4"><div class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 12 17 8M5 17h14"/></svg><span class="metric-label-text" id="quickMetricTitle4">GPS SPEED</span></div><div class="quick-metric-reading"><strong id="quickMetricValue4">—</strong><span class="metric-unit" id="quickMetricUnit4"></span></div><small id="quickMetricTime4">No recent reading</small></div>
+          <div class="metric" data-quick-card="5"><div class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 16l4-4 3 2 3-5"/></svg><span class="metric-label-text" id="quickMetricTitle5">CAN ODOMETER</span></div><div class="quick-metric-reading"><strong id="quickMetricValue5">—</strong><span class="metric-unit" id="quickMetricUnit5"></span></div><small id="quickMetricTime5">No recent reading</small></div>
+          <div class="metric" data-quick-card="6"><div class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h2m2 0v-5h2v5m2 0V10h2v10m2 0V5h2v15m2 0V2h2v18"/></svg><span class="metric-label-text" id="quickMetricTitle6">GSM SIGNAL</span></div><div class="quick-metric-reading"><strong id="quickMetricValue6">—</strong><span class="metric-unit" id="quickMetricUnit6"></span></div><small id="quickMetricTime6">No recent reading</small></div>
         </div>
         <section class="panel">
           <div class="panel-title"><div><h2>Vehicle battery</h2><p>Recorded supply voltage · last 24 hours</p></div><span class="circle-emblem">↗</span></div>
@@ -91,7 +93,19 @@
         <section class="panel"><div class="panel-title"><div><h2>Raw telemetry</h2><p>Latest value and its last-update time</p></div></div><input id="telemetryFilter" class="filter-input" type="search" placeholder="Filter e.g. can, crash, voltage" aria-label="Filter telemetry parameters" autocomplete="off"><div class="raw-list" id="rawTelemetry"></div></section>
       </section>
       <section id="settingsScreen" class="screen" aria-label="Personalization settings">
-        <div class="section-head"><div><p class="eyebrow">PERSONALIZATION</p><h1>My BMW <span>photos</span></h1></div><button class="icon-button" id="backFromSettings" aria-label="Back to dashboard"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button></div>
+        <div class="section-head"><div><p class="eyebrow">PERSONALIZATION</p><h1>Dashboard <span>settings</span></h1></div><button class="icon-button" id="backFromSettings" aria-label="Back to dashboard"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button></div>
+        <section class="panel quick-settings-panel">
+          <div class="panel-title"><div><h2>Dashboard quick metrics</h2><p>Six cards on iPhone and desktop · selected from your live Flespi telemetry</p></div></div>
+          <p class="help-line">Choose the raw telemetry field and an optional display name for each Home screen card. Empty names use the telemetry field name. Changes apply only to this browser.</p>
+          <form id="quickMetricsForm">
+            <div id="quickMetricsSettings" class="quick-metrics-settings"></div>
+            <div class="photo-actions">
+              <button type="submit" class="upload-button">Save dashboard cards</button>
+              <button type="button" class="secondary-button" id="resetQuickMetrics">Reset defaults</button>
+            </div>
+          </form>
+          <div class="result-box" id="quickMetricsStatus" hidden role="status"></div>
+        </section>
         <p class="settings-intro">Choose separate photos for your phone and desktop. F30 Connect automatically selects the portrait photo on phones and the landscape photo on wider screens.</p>
         <section class="panel">
           <div class="panel-title"><div><h2>Phone photo</h2><p>Portrait image · recommended 9:16</p></div></div>
