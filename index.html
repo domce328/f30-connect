@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./f30-ui-v149.css">
+  <link rel="stylesheet" href="./f30-ui-v150.css">
   <title>F30 Connect</title>
 </head>
 <body class="f30-home-screen" data-car-state="sleeping">
@@ -69,7 +69,7 @@
             <button class="remote-button remote-immo-on" data-command="immo-on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a7 7 0 1 1 0 8M12 3v9"/><path d="m8 17 8-8"/></svg><b>IMMO ON</b><small>Block engine · parked only</small></button>
             <button class="remote-button remote-immo-off" data-command="immo-off"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10M7.2 6.2a8 8 0 1 0 9.6 0"/></svg><b>IMMO OFF</b><small>Unblock engine</small></button>
           </div>
-          <p class="help-line">Commands require a live tracker connection and are never queued. Trunk and IMMO ON require fresh parked-state data. CAN-CONTROL support depends on your vehicle. A command response does not verify the physical state.</p>
+          <p class="help-line">Lock, unlock and turn-signal flash work with one tap. Trunk and IMMO still require typed confirmation. All commands require a live connection and are never queued. Vehicle support may vary.</p>
           <div id="remoteResult" class="result-box" hidden></div>
         </section>
       </section>
@@ -191,6 +191,6 @@
       <p class="help-line">Browser-based tokens are less isolated than backend secrets. Use a device-only ACL token and restrict allowed origins to your published app address.</p>
     </div>
   </dialog>
-  <script type="module" src="./app.js?v=1.4.9"></script>
+  <script type="module" src="./app.js?v=1.5.0"></script>
 </body>
 </html>
