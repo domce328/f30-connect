@@ -1,5 +1,5 @@
 import {setupPhotoSettings} from './personalize.js';
-import {api,connect,setupConnectionUI,hasSession} from './flespi-direct.js';
+import {api,connect,setupConnectionUI,hasSession,refreshTrustUI} from './flespi-direct.js';
 /* F30 Connect — privacy-first, framework-free PWA. Real Flespi data only. */
 const el=id=>document.getElementById(id);
 const state={device:null,telemetry:{},history:[],range:1,screen:'dashboard',lastHistoryFrom:0,historyTruncated:false,online:false,user:'',pendingAction:null,loading:false};
@@ -226,7 +226,7 @@ async function executeAction(){
   }catch(err){result('remoteResult',`Command NOT confirmed: ${err.message}`);}
   finally{state.pendingAction=null;await loadDashboard();}
 }
-function navigate(name){state.screen=name;document.body.classList.toggle('f30-home-screen',name==='dashboard');document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings')renderQuickMetricSettings();}
+function navigate(name){state.screen=name;document.body.classList.toggle('f30-home-screen',name==='dashboard');document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings'){renderQuickMetricSettings();refreshTrustUI();}}
 function exportCsv(filename,rows){
   if(!rows.length){alert('No records in the currently loaded period.');return;}
   const keys=Array.from(new Set(rows.flatMap(r=>Object.keys(r))));
@@ -305,6 +305,6 @@ function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEven
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadDashboard();});
   setInterval(()=>{if(document.visibilityState==='visible'&&state.screen==='dashboard')loadDashboard();},90000);
 }
-async function boot(){bind();setupPhotoSettings().catch(err=>console.warn('Photo settings:',err));connect(async()=>{await loadDashboard();await loadHistory(1);});if(hasSession()){await loadDashboard();await loadHistory(1);}if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.4.2').catch(()=>{});}
+async function boot(){bind();setupPhotoSettings().catch(err=>console.warn('Photo settings:',err));await connect(async()=>{await loadDashboard();await loadHistory(1);});if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.4.9').catch(()=>{});}
 boot();
 export const __test={eventsFromMessages,analyzeTrips,distance,routeSvg};
