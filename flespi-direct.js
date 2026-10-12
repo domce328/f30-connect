@@ -214,7 +214,7 @@ export async function api(route,opts={}){
     // Request ONLY fields used by the app. Sending every CAN/AVL key previously exhausted
     // the free Flespi REST response bandwidth, especially on repeated app launches.
     const detailFields='timestamp,server.timestamp,position.latitude,position.longitude,position.speed,external.powersource.voltage,engine.ignition.status,can.engine.rpm,can.vehicle.speed,crash.event,crash.event.enum,crash.events.number,crash.impact.acceleration';
-    const count=voltageOnly?3500:2500;
+    const count=voltageOnly?500:2500;
     const fields=voltageOnly?'timestamp,external.powersource.voltage':detailFields;
     const query=encodeURIComponent(JSON.stringify({from:Math.floor(from),to:Math.floor(to),reverse:true,count,fields}));
     const r=await queryFlespi(`${endpoint()}/messages?data=${query}`);const msgs=Array.isArray(r.result)?r.result:[];
