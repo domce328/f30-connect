@@ -197,8 +197,15 @@ export async function api(route,opts={}){
   if(!hasSession())throw new Error('Connect to Flespi first. Use the connection button in the header.');
   const url=new URL(route,'https://app.local');const path=url.pathname;
   if(path==='/api/dashboard'){
-    const [d,t]=await Promise.all([queryFlespi(`${endpoint()}?fields=id,name,connected,last_active`),queryFlespi(`${endpoint()}/telemetry/all`)]);
-    return {device:d.result?.[0]||null,telemetry:t.result?.[0]?.telemetry||{},user:'This browser'};
+    // Keep valid ignition/telemetry even when the separate connection-status query fails.
+    // Avoid simultaneous REST calls on accounts with low per-minute bandwidth limits.
+    const telemetryReply=await queryFlespi(`${endpoint()}/telemetry/all`);
+    let device=null,deviceWarning=null;
+    try{
+      const deviceReply=await queryFlespi(`${endpoint()}?fields=id,name,connected,last_active`);
+      device=deviceReply.result?.[0]||null;
+    }catch(error){deviceWarning=String(error.message||error).slice(0,240);}
+    return {device,telemetry:telemetryReply.result?.[0]?.telemetry||{},deviceWarning,user:'This browser'};
   }
   if(path==='/api/history'){
     const now=Math.floor(Date.now()/1000),to=Number(url.searchParams.get('to')||now),from=Number(url.searchParams.get('from')||to-86400);
