@@ -93,7 +93,24 @@ function renderEvents(){const events=eventsFromMessages(state.history);setText('
 }
 function renderDeviceDetails(){const d=state.device;const rows=[['Flespi device ID',d?.id],['Name',d?.name],['Connection',d?state.online?'TCP connected':'Disconnected':'—'],['Last connection activity',d?.last_active?fmtDate(d.last_active):'—'],['User',state.user||'—'],['CAN engine RPM',first(['can.engine.rpm']).value],['CAN program',first(['can.program.number']).value]];el('deviceDetails').innerHTML=rows.map(([k,v])=>`<div class="detail-row"><span>${esc(k)}</span><strong>${esc(v??'—')}</strong></div>`).join('');}
 function renderTelemetry(){const q=el('telemetryFilter').value.toLowerCase();const keys=Object.keys(state.telemetry||{}).filter(k=>k.toLowerCase().includes(q)).sort();el('rawTelemetry').innerHTML=keys.length?keys.slice(0,200).map(k=>{const v=state.telemetry[k]||{};return `<div class="detail-row"><span title="${esc(k)}">${esc(k)}</span><strong>${esc(typeof v.value==='object'?JSON.stringify(v.value):v.value)}<br><small style="color:#8097b0;font-weight:400">${esc(fmtAgo(v.ts))}</small></strong></div>`;}).join(''):'<div class="empty-state">No matching telemetry values</div>';}
-async function refreshCommands(){el('refreshCommands').disabled=true;try{const data=await api('/api/command-status');const rows=[...(data.pending||[]).map(v=>({...v,status:'Queued'})),...(data.completed||[]).map(v=>({...v,status:v.executed?'Device replied':'Processed / unconfirmed'}))].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));el('commandHistory').innerHTML=rows.length?rows.slice(0,20).map(v=>`<div class="detail-row"><span>${esc(v.meta?.kind||v.meta?.action||v.name)} · ${esc(fmtDate(v.timestamp))}</span><strong>${esc(v.status)}${v.response?`<br>${esc(String(v.response).slice(0,180))}`:''}</strong></div>`).join(''):'<div class="empty-state">No app-originated commands found</div>';}catch(err){el('commandHistory').textContent=err.message;}finally{el('refreshCommands').disabled=false;}}
+async function refreshCommands(){
+  el('refreshCommands').disabled=true;
+  try{
+    const data=await api('/api/command-status');
+    const rows=[...(data.pending||[]).map(v=>({...v,status:'Queued'})),
+      ...(data.completed||[]).map(v=>({...v,status:v.executed?'Device replied':'Processed / unconfirmed'}))]
+      .sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    const entries=rows.slice(0,20).map(v=>{
+      const response=v.response===null||v.response===undefined?'':String(v.response);
+      const reply=response?`<div style="margin-top:7px;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;color:#bde8fc;max-height:180px;overflow:auto">${esc(response.slice(0,3000))}</div>`:'';
+      return `<div class="detail-row"><span>${esc(v.meta?.kind||v.meta?.action||v.name||'Command')} · ${esc(fmtDate(v.timestamp))}</span><strong>${esc(v.status)}${reply}</strong></div>`;
+    }).join('');
+    const warnings=(data.warnings||[]).map(x=>`<div class="notice" style="margin:8px 0">${esc(x)}</div>`).join('');
+    const empty='<div class="empty-state">No F30 Connect command results returned yet. Check again after device execution.</div>';
+    el('commandHistory').innerHTML=(entries||empty)+warnings;
+  }catch(err){el('commandHistory').textContent=err.message;}
+  finally{el('refreshCommands').disabled=false;}
+}
 async function diagnostic(key){const button=document.querySelector(`[data-diag="${key}"]`);button.disabled=true;result('diagnosticResult','Submitting read-only diagnostic…');try{const data=await api('/api/diagnostic',{method:'POST',body:JSON.stringify({key})});result('diagnosticResult',`Queued successfully. ID: ${data.command?.id??'not returned'}. Wait for the next device connection, then refresh command history.`);await refreshCommands();}catch(err){result('diagnosticResult',err.message);}finally{button.disabled=false;}}
 function openConfirm(action){state.pendingAction=action;setText('dialogTitle',action==='lock'?'Lock BMW doors?':'Unlock BMW doors?');setText('dialogIcon',action==='lock'?'🔒':'🔓');setText('confirmWord',action.toUpperCase());setText('dialogDesc',action==='unlock'?'Unlocking grants access to the vehicle. This sends an immediate GPRS command only while the tracker is connected. No queued unlocking.':'This sends a door lock command only while the tracker is connected. It will not be queued for later.');el('confirmInput').value='';el('dialogSubmit').disabled=true;el('commandDialog').showModal();el('confirmInput').focus();}
 async function executeAction(){const action=state.pendingAction;if(!action)return;el('dialogSubmit').disabled=true;el('commandDialog').close();result('remoteResult',`Sending ${action} command…`);

@@ -53,13 +53,32 @@ async function queryFlespi(path,init={},token=sessionToken){
   }
   return value;
 }
+// Remember only command IDs/kinds locally, not command text or token.
+// This also identifies app-originated results if the API omits the meta object.
+const COMMAND_IDS_STORAGE='f30-connect-command-ids-v1';
+function rememberedCommands(){
+  try{
+    const value=JSON.parse(localStorage.getItem(COMMAND_IDS_STORAGE)||'null');
+    if(value?.deviceId!==String(deviceId)||!Array.isArray(value.commands))return [];
+    return value.commands.slice(-30);
+  }catch{return [];}
+}
+function rememberCommand(command,kind){
+  if(command?.id===undefined||command.id===null)return;
+  try{
+    const id=String(command.id),commands=rememberedCommands().filter(x=>x.id!==id);
+    commands.push({id,kind,at:Math.floor(Date.now()/1000)});
+    localStorage.setItem(COMMAND_IDS_STORAGE,JSON.stringify({deviceId:String(deviceId),commands:commands.slice(-30)}));
+  }catch{/* Storage is optional; do not interrupt command delivery. */}
+}
 function endpoint(){if(!isDevice(deviceId))throw new Error('Invalid device ID');return `/gw/devices/${deviceId}`;}
 async function liveDevice(){const r=await queryFlespi(`${endpoint()}?fields=id,name,connected,last_active`);return r.result?.[0]||null;}
 function thin(m){const fields=['timestamp','server.timestamp','position.latitude','position.longitude','position.speed','position.direction','position.altitude','external.powersource.voltage','battery.voltage','engine.ignition.status','movement.status','can.engine.rpm','can.vehicle.speed','can.vehicle.mileage','can.vehicle.odometer','crash.event','crash.event.enum','crash.events.number','crash.impact.acceleration','crash.max.acceleration','crash.duration','gnss.satellites','gsm.signal.level'];const r={};for(const k of fields)if(m[k]!==undefined)r[k]=m[k];return r;}
 async function sendNow(text,kind){
   const d=await liveDevice();if(!d||d.connected!==true)return {blocked:true,reason:'Tracker is offline. No command was sent or queued. Retry when the device connects.'};
   const r=await queryFlespi(`${endpoint()}/commands`,{method:'POST',body:[{name:'custom',properties:{text},timeout:15,meta:{app:'f30-connect',kind}}],timeout:30000});
-  return {blocked:false,command:r.result?.[0]||null,note:'Real-time command only, never an offline queue. A device response does not independently verify the physical vehicle state.'};
+  const command=r.result?.[0]||null;rememberCommand(command,kind);
+  return {blocked:false,command,note:'Real-time command only, never an offline queue. A device response does not independently verify the physical vehicle state.'};
 }
 function validateCommand(input){
   if(typeof input!=='string'||input.length>240||!input.trim()||/[^\x20-\x7e]/.test(input))throw new Error('One ASCII command, max 240 characters');
@@ -71,7 +90,8 @@ function validateCommand(input){
 }
 async function queueRead(text,kind){
   const r=await queryFlespi(`${endpoint()}/commands-queue`,{method:'POST',body:[{name:'custom',properties:{text},ttl:600,max_attempts:1,meta:{app:'f30-connect',kind}}]});
-  return {queued:true,command:r.result?.[0]||null,note:'Queued for up to ten minutes, pending device connectivity.'};
+  const command=r.result?.[0]||null;rememberCommand(command,kind);
+  return {queued:true,command,note:'Queued for up to ten minutes, pending device connectivity.'};
 }
 export async function api(route,opts={}){
   if(!hasSession())throw new Error('Connect to Flespi first. Use the connection button in the header.');
@@ -88,9 +108,36 @@ export async function api(route,opts={}){
     return {messages:msgs.map(thin),from,to,truncated:msgs.length>=3500};
   }
   if(path==='/api/command-status'){
-    const [p,c]=await Promise.all([queryFlespi(`${endpoint()}/commands-queue`),queryFlespi(`${endpoint()}/commands-result`)]);
-    const own=x=>x?.meta?.app==='f30-connect';const clean=x=>({id:x.id,timestamp:x.timestamp,name:x.name,executed:x.executed,response:x.response??null,meta:x.meta??{},properties:x.properties??{}});
-    return {pending:(p.result||[]).filter(own).slice(-15).map(clean),completed:(c.result||[]).filter(own).slice(-20).map(clean)};
+    // Completed commands are independent of the pending queue. A failure of one
+    // endpoint must never hide a successfully executed GPRS command reply.
+    const [queueReply,resultReply]=await Promise.allSettled([
+      queryFlespi(`${endpoint()}/commands-queue`),
+      queryFlespi(`${endpoint()}/commands-result`)
+    ]);
+    const warnings=[];
+    function readList(reply,label){
+      if(reply.status==='rejected'){
+        warnings.push(`${label} unavailable: ${reply.reason?.message||String(reply.reason)}`);
+        return [];
+      }
+      if(!Array.isArray(reply.value?.result)){
+        warnings.push(`${label} returned an unexpected response format.`);
+        return [];
+      }
+      return reply.value.result;
+    }
+    const queued=readList(queueReply,'Pending command queue');
+    const completed=readList(resultReply,'Completed command results');
+    const remembered=new Map(rememberedCommands().map(x=>[x.id,x]));
+    const own=x=>x?.meta?.app==='f30-connect'||remembered.has(String(x?.id));
+    const clean=x=>{
+      const match=remembered.get(String(x?.id));
+      return {id:x.id,timestamp:x.timestamp??match?.at,name:x.name,executed:x.executed,
+        response:x.response??null,meta:{...(x.meta||{}),kind:x.meta?.kind||match?.kind},
+        properties:x.properties??{}};
+    };
+    return {pending:queued.filter(own).slice(-15).map(clean),
+      completed:completed.filter(own).slice(-20).map(clean),warnings};
   }
   if(opts.method!=='POST')throw new Error('Unsupported API operation');
   let body;try{body=JSON.parse(opts.body);}catch{throw new Error('Invalid JSON request body');}
