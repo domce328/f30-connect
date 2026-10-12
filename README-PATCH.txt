@@ -1,28 +1,29 @@
-F30 CONNECT v1.4 — ACTUAL APP UI UPDATE
+F30 Connect v1.4.2 — iPhone car photo stacking and header layout fix
 
-This is a functional website update, not another mockup.
+The v1.4 iPhone screenshot shows all three car photos stacked because
+Safari appears to have cached the old CSS after the page HTML changed.
 
-What's updated:
-- Centered F30 Connect title, Settings gear top left, Flespi connection (+) top right.
-- My F30 under title.
-- Black BMW front-end rendered from 3 prepared car-only images (not a screenshot of the UI).
-- Offline/Disconnected: lights completely off.
-- Connected + Ignition OFF: angel eyes on.
-- Connected + Ignition ON: angel eyes + low beams on.
-- Live status pill centered BELOW the car, followed by real last-connection time.
-- Location + Maps link beneath the status pill.
-- Existing six customizable raw telemetry cards preserved, along with Trips, Events, Diagnostics, GPRS commands and Settings.
-- PWA cache version updated.
+Fixes:
+1) The DOM now has ONE <img> only, and app.js changes its src as state changes.
+   Stacking is impossible, even if a stylesheet is outdated.
+2) Separate fresh CSS file f30-ui-v142.css forces Safari to fetch the current layout.
+3) Critical mobile hero and header CSS lives in the page itself as fallback.
+4) JS filename URL is versioned; service worker has a new cache version.
+5) Keeps the six metric cards and their saved settings, commands, trips, and
+   Flespi token storage unchanged.
 
-UPLOAD:
-1. Unzip the PATCH. Upload all seven files directly into the repository ROOT using GitHub Add file > Upload files.
-2. Replace app.js, index.html, styles.css and sw.js. The three .webp files are NEW files.
-3. Commit and wait for Pages deployment to succeed.
-4. Windows: Ctrl+Shift+R. iPhone: reload the website in Safari (if installed to Home Screen, close and reopen after the new version updates).
+Upload these FOUR required files into GitHub repository root:
+  index.html (replace)
+  app.js (replace)
+  f30-ui-v142.css (NEW FILE; important)
+  sw.js (replace)
 
-IMPORTANT:
-- Lighting shown by the app is a VISUALIZATION driven by device TCP connection and decoded ignition telemetry. It is not a reading of the real vehicle headlamp switch, and does not remotely turn headlights on/off.
-- Device disconnected takes priority over a previously stored ignition=ON value, to avoid a misleading lit vehicle while offline.
-- Offline does NOT prove the tracker is sleeping; both conditions use the same unlit graphic.
-- Neither your token nor any vehicle logs are included.
-- If older photo personalization is enabled with custom hero photos, change your photo placement to Wallpaper or None for clean presentation.
+README-PATCH.txt is only instructions; do not upload it.
+
+IMPORTANT: Upload the actual new f30-ui-v142.css file. The older styles.css
+can remain in the repository; it is no longer used by v1.4.2.
+Leave the three existing car-*.webp files as they are.
+
+Wait for successful Pages deployment, then open the usual site in Safari.
+If already installed on Home Screen, close and reopen after loading Safari.
+Do NOT reset saved credentials or your six custom metrics.

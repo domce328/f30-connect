@@ -99,6 +99,10 @@ function renderHeroVisual(){
   scene.dataset.visualState=visual;
   const labels={sleeping:'Black BMW F30, all lights off',online:'Black BMW F30, angel eyes illuminated',ignition:'Black BMW F30, angel eyes and low beams illuminated'};
   scene.setAttribute('aria-label',labels[visual]);
+  // Only one image exists in the DOM. This avoids stacked images even if Safari holds stale CSS.
+  const target={sleeping:'car-offline.webp',online:'car-online.webp',ignition:'car-ignition.webp'}[visual];
+  const image=el('carStateImage');
+  if(image && !image.getAttribute('src').endsWith('/'+target))image.setAttribute('src','./'+target);
 }
 function renderStatus(){
   const pill=el('statusChip');
@@ -285,6 +289,6 @@ function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEven
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadDashboard();});
   setInterval(()=>{if(document.visibilityState==='visible'&&state.screen==='dashboard')loadDashboard();},90000);
 }
-async function boot(){bind();setupPhotoSettings().catch(err=>console.warn('Photo settings:',err));connect(async()=>{await loadDashboard();await loadHistory(1);});if(hasSession()){await loadDashboard();await loadHistory(1);}if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+async function boot(){bind();setupPhotoSettings().catch(err=>console.warn('Photo settings:',err));connect(async()=>{await loadDashboard();await loadHistory(1);});if(hasSession()){await loadDashboard();await loadHistory(1);}if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.4.2').catch(()=>{});}
 boot();
 export const __test={eventsFromMessages,analyzeTrips,distance,routeSvg};
