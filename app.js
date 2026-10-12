@@ -227,15 +227,18 @@ function renderEvents(){const events=eventsFromMessages(state.history);setText('
 }
 function renderDeviceDetails(){const d=state.device;const rows=[['Flespi device ID',d?.id],['Name',d?.name],['Connection',d?state.online?'TCP connected':'Disconnected':'—'],['Last connection activity',d?.last_active?fmtDate(d.last_active):'—'],['User',state.user||'—'],['CAN engine RPM',first(['can.engine.rpm']).value],['CAN program',first(['can.program.number']).value]];el('deviceDetails').innerHTML=rows.map(([k,v])=>`<div class="detail-row"><span>${esc(k)}</span><strong>${esc(v??'—')}</strong></div>`).join('');}
 function renderTelemetry(){const q=el('telemetryFilter').value.toLowerCase();const keys=Object.keys(state.telemetry||{}).filter(k=>k.toLowerCase().includes(q)).sort();el('rawTelemetry').innerHTML=keys.length?keys.slice(0,200).map(k=>{const v=state.telemetry[k]||{};return `<div class="detail-row"><span title="${esc(k)}">${esc(k)}</span><strong>${esc(typeof v.value==='object'?JSON.stringify(v.value):v.value)}<br><small style="color:#8097b0;font-weight:400">${esc(fmtAgo(v.ts))}</small></strong></div>`;}).join(''):'<div class="empty-state">No matching telemetry values</div>';}
+let commandHistoryRequest=null;
 async function refreshCommands(){
+  if(commandHistoryRequest)return commandHistoryRequest;
   el('refreshCommands').disabled=true;
+  commandHistoryRequest=(async()=>{
   try{
     const data=await api('/api/command-status');
     const rows=[...(data.pending||[]).map(v=>({...v,status:'Queued'})),
       ...(data.completed||[]).map(v=>({...v,status:v.executed?'Device replied':'Processed / unconfirmed'}))]
       .sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
     const entries=rows.slice(0,20).map(v=>{
-      const response=v.response===null||v.response===undefined?'':String(v.response);
+      const response=v.response===null||v.response===undefined?'':typeof v.response==='object'?JSON.stringify(v.response,null,2):String(v.response);
       const reply=response?`<div style="margin-top:7px;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;color:#bde8fc;max-height:180px;overflow:auto">${esc(response.slice(0,3000))}</div>`:'';
       return `<div class="detail-row"><span>${esc(v.meta?.kind||v.meta?.action||v.name||'Command')} · ${esc(fmtDate(v.timestamp))}</span><strong>${esc(v.status)}${reply}</strong></div>`;
     }).join('');
@@ -243,7 +246,9 @@ async function refreshCommands(){
     const empty='<div class="empty-state">No F30 Connect command results returned yet. Check again after device execution.</div>';
     el('commandHistory').innerHTML=(entries||empty)+warnings;
   }catch(err){el('commandHistory').textContent=err.message;}
-  finally{el('refreshCommands').disabled=false;}
+  finally{el('refreshCommands').disabled=false;commandHistoryRequest=null;}
+  })();
+  return commandHistoryRequest;
 }
 async function diagnostic(key){const button=document.querySelector(`[data-diag="${key}"]`);button.disabled=true;result('diagnosticResult','Submitting read-only diagnostic…');try{const data=await api('/api/diagnostic',{method:'POST',body:JSON.stringify({key})});result('diagnosticResult',`Queued successfully. ID: ${data.command?.id??'not returned'}. Wait for the next device connection, then refresh command history.`);await refreshCommands();}catch(err){result('diagnosticResult',err.message);}finally{button.disabled=false;}}
 const ONE_TAP_REMOTE_ACTIONS=new Set(['lock','unlock','flash']);
@@ -371,7 +376,7 @@ function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEven
 async function boot(){
   bind();
   setupPhotoSettings().catch(()=>{});
-  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.5.1').catch(()=>{});
+  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.5.2').catch(()=>{});
   await connect(async()=>{
     // A throttled network must not invalidate a successfully unlocked browser.
     await loadDashboard();

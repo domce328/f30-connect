@@ -122,6 +122,8 @@ async function queryFlespi(path,init={},token=sessionToken){
     throw new Error(`Flespi request failed for ${path.split('?')[0]}: ${err.message||'network or CORS error'}. Check Network tab or token Allowed origins.`);
   }
   // Distinguish a Flespi JSON error from a proxy, redirect or HTML 404 response.
+  // Apply cooldown even when an upstream rate-limit response is not JSON.
+  if(response.status===429)restCooldownUntil=Date.now()+90000;
   const raw=await response.text();
   let value;
   try{value=JSON.parse(raw);}catch{
@@ -131,6 +133,7 @@ async function queryFlespi(path,init={},token=sessionToken){
     const kind=/\<\s*!?doctype\s+html|\<\s*html/i.test(raw.slice(0,300))?'HTML page':'non-JSON body';
     throw new Error(`Flespi request ${path.split('?')[0]} returned HTTP ${response.status}, ${kind} (${type}), response path ${serverPath}, redirected=${response.redirected}. No token data is shown.`);
   }
+  if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Flespi returned an unexpected response format.');
   if(!response.ok || (Array.isArray(value.errors)&&value.errors.length&&!value.result?.length)){
     const reason=String(value.errors?.[0]?.reason||value.reason||`HTTP ${response.status}`).slice(0,250);
     if(response.status===429||/REST traffic volume|REST traffic.*limit|rate limit/i.test(reason))restCooldownUntil=Date.now()+90000;
@@ -145,7 +148,7 @@ function rememberedCommands(){
   try{
     const value=JSON.parse(localStorage.getItem(COMMAND_IDS_STORAGE)||'null');
     if(value?.deviceId!==String(deviceId)||!Array.isArray(value.commands))return [];
-    return value.commands.slice(-30);
+    return value.commands.filter(x=>x&&typeof x.id==='string').slice(-30);
   }catch{return [];}
 }
 function rememberCommand(command,kind){
@@ -182,7 +185,7 @@ async function sendNow(text,kind,requireParked=false){
 }
 function validateCommand(input){
   if(typeof input!=='string'||input.length>240||!input.trim()||/[^\x20-\x7e]/.test(input))throw new Error('One ASCII command, max 240 characters');
-  const s=input.trim().replace(/[ \t]+/g,' ');
+  const s=input.trim().replace(/[ \t]+/g,' ').toLowerCase();
   if(/^(getinfo|getstatus)$/i.test(s))return {kind:'read',text:s.toLowerCase()};
   if(/^getparam [0-9]{1,6}(?:\s*;\s*[0-9]{1,6}){0,29}$/i.test(s)||/^readio [0-9]{1,6}$/i.test(s))return {kind:'read',text:s.replace(/\s*;\s*/g,';')};
   if(/^setparam [0-9]{1,6}:[+-]?[0-9]{1,12}(?:\s*;\s*[0-9]{1,6}:[+-]?[0-9]{1,12}){0,15}$/i.test(s))return {kind:'write',text:s.replace(/\s*;\s*/g,';')};
@@ -224,7 +227,8 @@ export async function api(route,opts={}){
     // Completed commands are independent of the pending queue. A failure of one
     // endpoint must never hide a successfully executed GPRS command reply.
     const [queueReply,resultReply]=await Promise.allSettled([
-      queryFlespi(`${endpoint()}/commands-queue`),
+      // GET requires a command selector; the selector-free URL is POST-only.
+      queryFlespi(`${endpoint()}/commands-queue/all`),
       queryFlespi(`${endpoint()}/commands-result`)
     ]);
     const warnings=[];
@@ -249,8 +253,11 @@ export async function api(route,opts={}){
         response:x.response??null,meta:{...(x.meta||{}),kind:x.meta?.kind||match?.kind},
         properties:x.properties??{}};
     };
-    return {pending:queued.filter(own).slice(-15).map(clean),
-      completed:completed.filter(own).slice(-20).map(clean),warnings};
+    const newest=(items,count)=>items.filter(x=>x&&own(x)).map(clean)
+      .sort((a,b)=>(Number(b.timestamp)||0)-(Number(a.timestamp)||0)).slice(0,count);
+    const results=newest(completed,20),done=new Set(results.map(x=>String(x.id)));
+    return {pending:newest(queued.filter(x=>x&&!done.has(String(x.id))),15),
+      completed:results,warnings};
   }
   if(opts.method!=='POST')throw new Error('Unsupported API operation');
   let body;try{body=JSON.parse(opts.body);}catch{throw new Error('Invalid JSON request body');}
@@ -270,12 +277,12 @@ export async function api(route,opts={}){
   }
   if(path==='/api/diagnostic'){
     const allowed={getinfo:'getinfo',getstatus:'getstatus',crashSettings:'getparam 11400;11401;11402;11406;11410;11412',sleepSettings:'getparam 101;102;103;1000;60110'};
-    if(!allowed[body?.key])throw new Error('Unsupported diagnostic');return queueRead(allowed[body.key],body.key);
+    if(typeof body?.key!=='string'||!Object.prototype.hasOwnProperty.call(allowed,body.key))throw new Error('Unsupported diagnostic');return queueRead(allowed[body.key],body.key);
   }
   if(path==='/api/custom-command'){
     const spec=validateCommand(body?.text);
     if(spec.kind==='read')return {...(await queueRead(spec.text,'custom-read')),kind:'read'};
-    if(body.confirm!=='APPLY'||body.confirmCommand!==spec.text)throw new Error('Configuration change requires APPLY and the original command');
+    if(body.confirm!=='APPLY'||validateCommand(body.confirmCommand).text!==spec.text)throw new Error('Configuration change requires APPLY and the original command');
     return {...(await sendNow(spec.text,'custom-write')),kind:'write'};
   }
   throw new Error('Unsupported request');
