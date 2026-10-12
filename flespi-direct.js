@@ -74,8 +74,23 @@ function rememberCommand(command,kind){
 function endpoint(){if(!isDevice(deviceId))throw new Error('Invalid device ID');return `/gw/devices/${deviceId}`;}
 async function liveDevice(){const r=await queryFlespi(`${endpoint()}?fields=id,name,connected,last_active`);return r.result?.[0]||null;}
 function thin(m){const fields=['timestamp','server.timestamp','position.latitude','position.longitude','position.speed','position.direction','position.altitude','external.powersource.voltage','battery.voltage','engine.ignition.status','movement.status','can.engine.rpm','can.vehicle.speed','can.vehicle.mileage','can.vehicle.odometer','crash.event','crash.event.enum','crash.events.number','crash.impact.acceleration','crash.max.acceleration','crash.duration','gnss.satellites','gsm.signal.level'];const r={};for(const k of fields)if(m[k]!==undefined)r[k]=m[k];return r;}
-async function sendNow(text,kind){
+// Fails closed when fresh parked-state telemetry is unavailable.
+async function confirmParkedFromLiveTelemetry(){
+  const reply=await queryFlespi(`${endpoint()}/telemetry/all`);
+  const t=reply.result?.[0]?.telemetry||{};
+  const now=Date.now()/1000;
+  const fresh=x=>x&&x.value!==undefined&&x.value!==null&&Number.isFinite(Number(x.ts))&&now-Number(x.ts)>=-5&&now-Number(x.ts)<=180;
+  const ignition=t['engine.ignition.status'];
+  if(!fresh(ignition)||![false,0,'0','false'].includes(ignition.value))return 'Not sent: recent ignition-OFF telemetry is unavailable. Park the vehicle and refresh its data.';
+  const speeds=[t['position.speed'],t['can.vehicle.speed']].filter(fresh);
+  if(!speeds.length||speeds.some(x=>!Number.isFinite(Number(x.value))||Number(x.value)>2||Number(x.value)<0))return 'Not sent: fresh stationary speed (0 km/h) is not confirmed.';
+  const rpm=t['can.engine.rpm'];
+  if(fresh(rpm)&&(!Number.isFinite(Number(rpm.value))||Number(rpm.value)>0))return 'Not sent: engine RPM is nonzero or invalid.';
+  return null;
+}
+async function sendNow(text,kind,requireParked=false){
   const d=await liveDevice();if(!d||d.connected!==true)return {blocked:true,reason:'Tracker is offline. No command was sent or queued. Retry when the device connects.'};
+  if(requireParked){const unsafe=await confirmParkedFromLiveTelemetry();if(unsafe)return {blocked:true,reason:unsafe};}
   const r=await queryFlespi(`${endpoint()}/commands`,{method:'POST',body:[{name:'custom',properties:{text},timeout:15,meta:{app:'f30-connect',kind}}],timeout:30000});
   const command=r.result?.[0]||null;rememberCommand(command,kind);
   return {blocked:false,command,note:'Real-time command only, never an offline queue. A device response does not independently verify the physical vehicle state.'};
@@ -142,8 +157,18 @@ export async function api(route,opts={}){
   if(opts.method!=='POST')throw new Error('Unsupported API operation');
   let body;try{body=JSON.parse(opts.body);}catch{throw new Error('Invalid JSON request body');}
   if(path==='/api/action'){
-    if(!['lock','unlock'].includes(body?.action)||body.confirm!==body.action.toUpperCase())throw new Error('Type LOCK or UNLOCK to confirm');
-    return sendNow(body.action==='lock'?'lvcanclosealldoors':'lvcanopenalldoors',body.action);
+    const actions={
+      lock:{text:'lvcanclosealldoors',confirm:'LOCK'},
+      unlock:{text:'lvcanopenalldoors',confirm:'UNLOCK'},
+      trunk:{text:'lvcanopentrunk',confirm:'OPEN TRUNK',parked:true},
+      flash:{text:'lvcanturninglights',confirm:'FLASH TURNS'},
+      'immo-on':{text:'lvcanblockengine',confirm:'IMMO ON',parked:true},
+      'immo-off':{text:'lvcanunblockengine',confirm:'IMMO OFF'}
+    };
+    const action=body?.action;
+    if(typeof action!=='string'||!Object.prototype.hasOwnProperty.call(actions,action)||body.confirm!==actions[action].confirm)
+      throw new Error('Invalid remote action or confirmation.');
+    return sendNow(actions[action].text,action,!!actions[action].parked);
   }
   if(path==='/api/diagnostic'){
     const allowed={getinfo:'getinfo',getstatus:'getstatus',crashSettings:'getparam 11400;11401;11402;11406;11410;11412',sleepSettings:'getparam 101;102;103;1000;60110'};
