@@ -8,6 +8,7 @@ const TRUST_STORE='trust';
 const TRUST_ID='this-browser';
 const BASE='https://flespi.io';
 let sessionToken=null, deviceId=null, readyCallback=null, bound=false;
+let restCooldownUntil=0;
 const el=id=>document.getElementById(id);
 const bytes=a=>Uint8Array.from(atob(a),c=>c.charCodeAt(0));
 const b64=buffer=>btoa(String.fromCharCode(...new Uint8Array(buffer)));
@@ -110,6 +111,7 @@ export async function refreshTrustUI(){
 
 async function queryFlespi(path,init={},token=sessionToken){
   if(!token)throw new Error('No Flespi token unlocked. Open the connection dialog.');
+  if(Date.now()<restCooldownUntil)throw new Error('Flespi REST traffic limit reached. Showing last known data; automatic requests resume after the cooldown.');
   // GET requests need no Content-Type. Avoid an unnecessary CORS preflight header.
   const headers={Authorization:`FlespiToken ${token}`};
   if(init.body!==undefined)headers['Content-Type']='application/json';
@@ -130,7 +132,9 @@ async function queryFlespi(path,init={},token=sessionToken){
     throw new Error(`Flespi request ${path.split('?')[0]} returned HTTP ${response.status}, ${kind} (${type}), response path ${serverPath}, redirected=${response.redirected}. No token data is shown.`);
   }
   if(!response.ok || (Array.isArray(value.errors)&&value.errors.length&&!value.result?.length)){
-    throw new Error(`Flespi: ${String(value.errors?.[0]?.reason||value.reason||`HTTP ${response.status}`).slice(0,250)}`);
+    const reason=String(value.errors?.[0]?.reason||value.reason||`HTTP ${response.status}`).slice(0,250);
+    if(response.status===429||/REST traffic volume|REST traffic.*limit|rate limit/i.test(reason))restCooldownUntil=Date.now()+90000;
+    throw new Error(`Flespi: ${reason}`);
   }
   return value;
 }
@@ -199,9 +203,15 @@ export async function api(route,opts={}){
   if(path==='/api/history'){
     const now=Math.floor(Date.now()/1000),to=Number(url.searchParams.get('to')||now),from=Number(url.searchParams.get('from')||to-86400);
     if(!Number.isFinite(from)||!Number.isFinite(to)||from>=to||to>now+3600||to-from>7*86400)throw new Error('Invalid date range (maximum 7 days)');
-    const query=encodeURIComponent(JSON.stringify({from:Math.floor(from),to:Math.floor(to),reverse:true,count:3500}));
+    const voltageOnly=url.searchParams.get('mode')==='voltage';
+    // Request ONLY fields used by the app. Sending every CAN/AVL key previously exhausted
+    // the free Flespi REST response bandwidth, especially on repeated app launches.
+    const detailFields='timestamp,server.timestamp,position.latitude,position.longitude,position.speed,external.powersource.voltage,engine.ignition.status,can.engine.rpm,can.vehicle.speed,crash.event,crash.event.enum,crash.events.number,crash.impact.acceleration';
+    const count=voltageOnly?3500:2500;
+    const fields=voltageOnly?'timestamp,external.powersource.voltage':detailFields;
+    const query=encodeURIComponent(JSON.stringify({from:Math.floor(from),to:Math.floor(to),reverse:true,count,fields}));
     const r=await queryFlespi(`${endpoint()}/messages?data=${query}`);const msgs=Array.isArray(r.result)?r.result:[];
-    return {messages:msgs.map(thin),from,to,truncated:msgs.length>=3500};
+    return {messages:msgs.map(thin),from,to,truncated:msgs.length>=count};
   }
   if(path==='/api/command-status'){
     // Completed commands are independent of the pending queue. A failure of one
