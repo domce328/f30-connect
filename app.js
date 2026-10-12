@@ -201,13 +201,31 @@ async function refreshCommands(){
   finally{el('refreshCommands').disabled=false;}
 }
 async function diagnostic(key){const button=document.querySelector(`[data-diag="${key}"]`);button.disabled=true;result('diagnosticResult','Submitting read-only diagnostic…');try{const data=await api('/api/diagnostic',{method:'POST',body:JSON.stringify({key})});result('diagnosticResult',`Queued successfully. ID: ${data.command?.id??'not returned'}. Wait for the next device connection, then refresh command history.`);await refreshCommands();}catch(err){result('diagnosticResult',err.message);}finally{button.disabled=false;}}
-function openConfirm(action){state.pendingAction=action;setText('dialogTitle',action==='lock'?'Lock BMW doors?':'Unlock BMW doors?');setText('dialogIcon',action==='lock'?'🔒':'🔓');setText('confirmWord',action.toUpperCase());setText('dialogDesc',action==='unlock'?'Unlocking grants access to the vehicle. This sends an immediate GPRS command only while the tracker is connected. No queued unlocking.':'This sends a door lock command only while the tracker is connected. It will not be queued for later.');el('confirmInput').value='';el('dialogSubmit').disabled=true;el('commandDialog').showModal();el('confirmInput').focus();}
-async function executeAction(){const action=state.pendingAction;if(!action)return;el('dialogSubmit').disabled=true;el('commandDialog').close();result('remoteResult',`Sending ${action} command…`);
-  try{const data=await api('/api/action',{method:'POST',body:JSON.stringify({action,confirm:action.toUpperCase()})});
+const REMOTE_ACTION_UI={
+  lock:{title:'Lock BMW doors?',icon:'🔒',confirm:'LOCK',description:'Lock the vehicle using CAN-CONTROL. Immediate GPRS command only.'},
+  unlock:{title:'Unlock BMW doors?',icon:'🔓',confirm:'UNLOCK',description:'Unlocking grants access to the vehicle. Immediate GPRS command only.'},
+  trunk:{title:'Open BMW trunk?',icon:'🚘',confirm:'OPEN TRUNK',description:'The trunk may physically open. This will only be sent when fresh telemetry confirms ignition OFF and the vehicle stationary.'},
+  flash:{title:'Flash turn signals once?',icon:'↔',confirm:'FLASH TURNS',description:'Request one flash of the vehicle turn signals. Immediate GPRS command only.'},
+  'immo-on':{title:'Enable engine immobilizer?',icon:'⛔',confirm:'IMMO ON',description:'Blocks engine starting where supported. Only send when the BMW is safely parked, ignition OFF, and nobody is driving. Fresh parked-state telemetry is required. Never test while driving.'},
+  'immo-off':{title:'Disable engine immobilizer?',icon:'🔓',confirm:'IMMO OFF',description:'Requests engine unblocking where supported. This may restore starting capability. Immediate GPRS command only.'}
+};
+function remoteConfirmWord(action){return REMOTE_ACTION_UI[action]?.confirm||'';}
+function openConfirm(action){
+  const info=REMOTE_ACTION_UI[action];if(!info)return;
+  state.pendingAction=action;
+  setText('dialogTitle',info.title);setText('dialogIcon',info.icon);setText('confirmWord',info.confirm);setText('dialogDesc',info.description+' No offline queueing. A command reply is not proof that the vehicle changed state.');
+  el('confirmInput').value='';el('dialogSubmit').disabled=true;el('commandDialog').showModal();el('confirmInput').focus();
+}
+async function executeAction(){
+  const action=state.pendingAction,confirmation=remoteConfirmWord(action);if(!confirmation)return;
+  if(el('confirmInput').value.trim().toUpperCase()!==confirmation)return;
+  el('dialogSubmit').disabled=true;el('commandDialog').close();result('remoteResult',`Sending ${action} command…`);
+  try{const data=await api('/api/action',{method:'POST',body:JSON.stringify({action,confirm:confirmation})});
     if(data.blocked) result('remoteResult',data.reason);
     else result('remoteResult',`Device response: ${data.command?.response||'Command accepted; no explicit response shown.'}\n${data.note}`);
   }catch(err){result('remoteResult',`Command NOT confirmed: ${err.message}`);}
-  finally{state.pendingAction=null;await loadDashboard();}}
+  finally{state.pendingAction=null;await loadDashboard();}
+}
 function navigate(name){state.screen=name;document.body.classList.toggle('f30-home-screen',name==='dashboard');document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings')renderQuickMetricSettings();}
 function exportCsv(filename,rows){
   if(!rows.length){alert('No records in the currently loaded period.');return;}
@@ -250,7 +268,7 @@ function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEven
   el('refreshTrips').addEventListener('click',()=>loadHistory(state.range));el('refreshEvents').addEventListener('click',()=>loadHistory(state.range));
   document.querySelectorAll('[data-range]').forEach(btn=>btn.addEventListener('click',()=>{const days=Number(btn.dataset.range);state.range=days;document.querySelectorAll('[data-range]').forEach(x=>x.classList.toggle('selected',x===btn));loadHistory(days);}));
   document.querySelectorAll('[data-command]').forEach(btn=>btn.addEventListener('click',()=>openConfirm(btn.dataset.command)));
-  el('confirmInput').addEventListener('input',e=>el('dialogSubmit').disabled=e.target.value.trim().toUpperCase()!==state.pendingAction?.toUpperCase());
+  el('confirmInput').addEventListener('input',e=>el('dialogSubmit').disabled=e.target.value.trim().toUpperCase()!==remoteConfirmWord(state.pendingAction));
   el('dialogSubmit').addEventListener('click',executeAction);el('commandDialog').addEventListener('close',()=>{state.pendingAction=null;});
   document.querySelectorAll('[data-diag]').forEach(btn=>btn.addEventListener('click',()=>diagnostic(btn.dataset.diag)));
   el('refreshCommands').addEventListener('click',refreshCommands);el('refreshDiagnostics').addEventListener('click',loadDashboard);
