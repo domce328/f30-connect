@@ -1,14 +1,15 @@
-F30 Connect v1.3 - Six customizable dashboard quick metrics
+F30 Connect v1.3.1 — Front-End Lighting States
 
-Upload/replace these four files in the ROOT of your existing GitHub repo:
-  app.js, index.html, styles.css, sw.js
+This patch adds the BMW-style front-end hero and three visual states:
+- Sleeping / offline: no angel eyes
+- Online: angel eyes on
+- Ignition ON: angel eyes + short beams
 
-Keep all other files unchanged, especially flespi-direct.js (your working command-history version) and personalize.js.
+Replace these files in the repository root:
+- app.js
+- index.html
+- styles.css
+- sw.js
 
-After the GitHub Pages deployment, hard refresh the page. On iPhone, reopen F30 Connect in Safari if the installed Home Screen app caches an older version.
-Go to Settings > Dashboard quick metrics. Six cards: each has a drop-down with the current raw Flespi telemetry keys and a freely editable display label. Press Save dashboard cards, return Home.
-
-The existing Home quick-metric card design is retained. Always 2 columns x 3 rows on iPhone. No tracker configuration is written by these settings.
-Settings are saved in this browser's localStorage, so repeat once on every phone/computer. If the device has no live telemetry, saved keys still appear, but currently unavailable keys show No recent reading.
-
-This patch does NOT yet change the BMW car image/lighting-states. That remains the next independent design step.
+Then commit and wait for GitHub Pages to deploy.
+On desktop, refresh with Ctrl+Shift+R. On iPhone, open a fresh Safari tab or reload after the service worker updates.

@@ -88,9 +88,25 @@ function saveQuickMetrics(){
   const msg=el('quickMetricsStatus');msg.hidden=false;msg.textContent='Saved. The six Home screen cards now use your selected telemetry fields and names.';
 }
 function renderStatus(){const pill=el('statusChip');pill.className='status-pill '+(state.device?' '+(state.online?'live':'offline'):'error');pill.querySelector('span').textContent=state.device?(state.online?'Connected':'Offline'):'Not ready';}
+
+function currentVehicleVisualState(){
+  if(!state.online)return 'sleeping';
+  const ignition=truth(first(['engine.ignition.status']).value)||(n(first(['can.engine.rpm']).value)||0)>0;
+  return ignition?'ignition':'online';
+}
+function renderHeroVisual(){
+  const scene=el('carFrontScene');
+  if(!scene)return;
+  const visual=currentVehicleVisualState();
+  scene.classList.remove('state-sleeping','state-online','state-ignition');
+  scene.classList.add(`state-${visual}`);
+  const caption=el('vehicleStateText');
+  if(caption)caption.textContent=visual==='ignition'?'Ignition ON · short beams + angel eyes':'online'===visual?'Online · angel eyes active':'Sleeping / offline';
+}
 function renderDashboard(){
   state.online=state.device?.connected===true;
   renderStatus();
+  renderHeroVisual();
   renderQuickMetrics();
   const lat=n(first(['position.latitude']).value),lon=n(first(['position.longitude']).value);
   const loc=el('locationText');loc.textContent=lat!==null&&lon!==null?`${lat.toFixed(5)}, ${lon.toFixed(5)}`:'Location unavailable';
