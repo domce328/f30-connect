@@ -87,10 +87,20 @@ function saveQuickMetrics(){
   quickMetrics=result;renderQuickMetrics();
   const msg=el('quickMetricsStatus');msg.hidden=false;msg.textContent='Saved. The six Home screen cards now use your selected telemetry fields and names.';
 }
+// Physical ignition is an AVL reading; 'connected' means a live Flespi TCP socket.
+// GNSS Sleep can disconnect TCP while ignition telemetry remains recently valid.
+const IGNITION_CURRENT_SECONDS=120;
+const IGNITION_RECENT_SECONDS=600;
+function ignitionObservation(){
+  const item=first(['engine.ignition.status']);
+  const age=Number(item.ts) > 0 ? Date.now()/1000-Number(item.ts):Infinity;
+  return {on:truth(item.value),off:item.value===false||item.value===0||item.value==='0'||item.value==='false',age,ts:item.ts};
+}
 function currentVehicleVisualState(){
-  // Never light the illustration from stale ignition telemetry when the tracker is offline.
-  if(state.device?.connected!==true)return 'sleeping';
-  return truth(first(['engine.ignition.status']).value)?'ignition':'online';
+  const ignition=ignitionObservation();
+  if(ignition.on&&ignition.age<=IGNITION_RECENT_SECONDS)return 'ignition';
+  if(state.device?.connected===true)return 'online';
+  return 'sleeping';
 }
 function renderHeroVisual(){
   const scene=el('carFrontScene');
@@ -107,7 +117,8 @@ function renderStatus(){
   if(!pill)return;
   const visual=currentVehicleVisualState();
   pill.className=`status-pill ${visual}`;
-  pill.querySelector('span').textContent=visual==='ignition'?'Ignition ON':visual==='online'?'Online':'Offline / Sleeping';
+  const ignition=ignitionObservation();
+  pill.querySelector('span').textContent=visual==='ignition'?(ignition.age>IGNITION_CURRENT_SECONDS?'Ignition ON · last reported':'Ignition ON'):visual==='online'?'Online':'Offline / Sleeping';
 }
 function renderDashboard(){
   state.online=state.device?.connected===true;
@@ -117,22 +128,29 @@ function renderDashboard(){
   const lat=n(first(['position.latitude']).value),lon=n(first(['position.longitude']).value);
   const loc=el('locationText');loc.textContent=lat!==null&&lon!==null?`${lat.toFixed(5)}, ${lon.toFixed(5)}`:'Location unavailable';
   const map=el('lastLocationMap');map.hidden=lat===null||lon===null;if(!map.hidden)map.dataset.point=`${lat},${lon}`;
-  const lastSeen=state.device?.last_active||first(['server.timestamp','timestamp']).value;
-  setText('lastSeen',lastSeen?`Last updated ${fmtAgo(n(lastSeen))}`:'No recent connection');
-  if(!state.device)notice('No device data loaded. Open Flespi connection and unlock your token.');else notice('');
+  const ignition=ignitionObservation();
+  const teleLatest=Math.max(0,...Object.values(state.telemetry||{}).map(x=>Number(x?.ts)||0));
+  const lastSeen=Math.max(Number(state.device?.last_active)||0,teleLatest);
+  setText('lastSeen',lastSeen?`Last reported ${fmtAgo(lastSeen)}`:'No recent telemetry');
+  if(!state.device&&!Object.keys(state.telemetry).length)notice('No vehicle data available yet. Connect Flespi or wait for the next tracker report.');else notice('');
   renderDeviceDetails();renderTelemetry();renderChart();
 }
 let dashboardRequest=null,lastDashboardFetch=0;
 async function loadDashboard(force=false){
   if(!hasSession())return;
   if(dashboardRequest)return dashboardRequest;
-  if(!force&&Date.now()-lastDashboardFetch<45000)return;
+  if(!force&&Date.now()-lastDashboardFetch<25000)return;
   el('refreshDashboard').disabled=true;
   dashboardRequest=(async()=>{
     try{
       const data=await api('/api/dashboard');
-      state.device=data.device;state.telemetry=data.telemetry||{};state.user=data.user||'';
-      lastDashboardFetch=Date.now();renderDashboard();
+      // Never clear known connectivity on a partial API failure.
+      if(data.device)state.device=data.device;
+      state.telemetry={...state.telemetry,...(data.telemetry||{})};
+      state.user=data.user||state.user||'';
+      lastDashboardFetch=Date.now();
+      renderDashboard();
+      if(data.deviceWarning)notice('Connection status unavailable: '+data.deviceWarning);
     }catch(err){
       // A REST quota failure does NOT mean the FMC130 disconnected.
       // Preserve the previous vehicle and telemetry state rather than falsely resetting it.
@@ -345,13 +363,15 @@ function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEven
   el('exportHistory').addEventListener('click',()=>exportCsv('f30-telemetry-history.csv',state.history));
   el('exportEvents').addEventListener('click',()=>exportCsv('f30-crash-events.csv',eventsFromMessages(state.history)));
   document.addEventListener('click',e=>{const b=e.target.closest('[data-point]');if(!b)return;const pts=b.dataset.point.split(',').map(Number);if(pts.length!==2||pts.some(x=>!Number.isFinite(x)))return;const url=`https://maps.apple.com/?ll=${pts[0]},${pts[1]}&q=Vehicle%20location`;window.open(url,'_blank','noopener,noreferrer');});
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&hasSession())loadDashboard();});
-  setInterval(()=>{if(document.visibilityState==='visible'&&state.screen==='dashboard'&&hasSession())loadDashboard();},180000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&hasSession())loadDashboard(true);});
+  window.addEventListener('pageshow',event=>{if(event.persisted&&hasSession())loadDashboard(true);});
+  window.addEventListener('focus',()=>{if(hasSession()&&state.screen==='dashboard')loadDashboard();});
+  setInterval(()=>{if(document.visibilityState==='visible'&&state.screen==='dashboard'&&hasSession())loadDashboard();},60000);
 }
 async function boot(){
   bind();
   setupPhotoSettings().catch(()=>{});
-  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.5.0').catch(()=>{});
+  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.5.1').catch(()=>{});
   await connect(async()=>{
     // A throttled network must not invalidate a successfully unlocked browser.
     await loadDashboard();
