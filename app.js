@@ -122,8 +122,34 @@ function renderDashboard(){
   if(!state.device)notice('No device data loaded. Open Flespi connection and unlock your token.');else notice('');
   renderDeviceDetails();renderTelemetry();renderChart();
 }
-async function loadDashboard(){el('refreshDashboard').disabled=true;try{const data=await api('/api/dashboard');state.device=data.device;state.telemetry=data.telemetry||{};state.user=data.user||'';renderDashboard();}catch(err){state.device=null;renderStatus();renderHeroVisual();notice(err.message);}finally{el('refreshDashboard').disabled=false;}}
-function recentVoltage(){return state.history.filter(m=>n(m['external.powersource.voltage'])!==null&&n(m.timestamp)!==null).sort((a,b)=>a.timestamp-b.timestamp).map(m=>({t:m.timestamp,v:n(m['external.powersource.voltage'])}));}
+let dashboardRequest=null,lastDashboardFetch=0;
+async function loadDashboard(force=false){
+  if(!hasSession())return;
+  if(dashboardRequest)return dashboardRequest;
+  if(!force&&Date.now()-lastDashboardFetch<45000)return;
+  el('refreshDashboard').disabled=true;
+  dashboardRequest=(async()=>{
+    try{
+      const data=await api('/api/dashboard');
+      state.device=data.device;state.telemetry=data.telemetry||{};state.user=data.user||'';
+      lastDashboardFetch=Date.now();renderDashboard();
+    }catch(err){
+      // A REST quota failure does NOT mean the FMC130 disconnected.
+      // Preserve the previous vehicle and telemetry state rather than falsely resetting it.
+      notice('Latest data temporarily unavailable: '+err.message);
+    }finally{el('refreshDashboard').disabled=false;dashboardRequest=null;}
+  })();
+  return dashboardRequest;
+}
+let batteryHistory=[],lastBatteryFetch=0;
+function recentVoltage(){const rows=batteryHistory.length?batteryHistory:state.history;return rows.filter(m=>n(m['external.powersource.voltage'])!==null&&n(m.timestamp)!==null).sort((a,b)=>a.timestamp-b.timestamp).map(m=>({t:m.timestamp,v:n(m['external.powersource.voltage'])}));}
+async function loadBatteryHistory(force=false){
+  if(!hasSession()||(!force&&Date.now()-lastBatteryFetch<600000))return;
+  const now=Math.floor(Date.now()/1000);
+  try{const data=await api(`/api/history?mode=voltage&from=${now-86400}&to=${now}`);
+      batteryHistory=data.messages||[];lastBatteryFetch=Date.now();renderChart();
+  }catch(err){if(!batteryHistory.length)renderChart();/* Dashboard telemetry remains usable */ }
+}
 function renderChart(){const pts=recentVoltage().filter(p=>p.t>=Date.now()/1000-86400);const box=el('batteryChart');if(pts.length<2){box.innerHTML='<div class="empty-chart">Waiting for at least two voltage readings</div>';return;}
   const data=pts.length>250?pts.filter((_,i)=>i%Math.ceil(pts.length/250)===0):pts;
   const min=Math.min(...data.map(x=>x.v)),max=Math.max(...data.map(x=>x.v));const pad=Math.max(.06,(max-min)*.15);const lo=min-pad,hi=max+pad;
@@ -136,8 +162,9 @@ function renderChart(){const pts=recentVoltage().filter(p=>p.t>=Date.now()/1000-
   const lines=ticks.map(v=>`<line class="chart-grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="0" y="${y(v)+3}">${v.toFixed(2)}</text>`).join('');
   box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" aria-label="Voltage line chart" role="img">${lines}<path class="chart-area" d="${area}"/><path class="chart-path" d="${d}"/><circle class="last-dot" cx="${x(data.at(-1).t)}" cy="${y(data.at(-1).v)}" r="4"/><text x="${L}" y="${H-5}">${esc(fmtTime(data[0].t))}</text><text x="${W-R}" y="${H-5}" text-anchor="end">${esc(fmtTime(data.at(-1).t))}</text></svg>`;
 }
-async function loadHistory(days=1){if(state.loading)return;state.loading=true;const now=Math.floor(Date.now()/1000);const from=now-days*86400;const url=`/api/history?from=${from}&to=${now}`;el('refreshTrips').disabled=true;el('refreshEvents').disabled=true;
-  try{const data=await api(url);state.history=(data.messages||[]).slice().sort((a,b)=>Number(a.timestamp)-Number(b.timestamp));state.lastHistoryFrom=from;state.historyTruncated=!!data.truncated;renderChart();renderTrips();renderEvents();}
+let lastHistoryFetch=0,loadedHistoryRange=0;
+async function loadHistory(days=1){if(!hasSession()||state.loading)return;if(state.history.length&&loadedHistoryRange===days&&Date.now()-lastHistoryFetch<300000){renderTrips();renderEvents();return;}state.loading=true;const now=Math.floor(Date.now()/1000);const from=now-days*86400;const url=`/api/history?from=${from}&to=${now}`;el('refreshTrips').disabled=true;el('refreshEvents').disabled=true;
+  try{const data=await api(url);state.history=(data.messages||[]).slice().sort((a,b)=>Number(a.timestamp)-Number(b.timestamp));state.lastHistoryFrom=from;state.historyTruncated=!!data.truncated;lastHistoryFetch=Date.now();loadedHistoryRange=days;renderChart();renderTrips();renderEvents();}
   catch(err){el('tripsList').innerHTML=`<div class="empty-state">${esc(err.message)}</div>`;el('eventsList').innerHTML=`<div class="empty-state">${esc(err.message)}</div>`;}
   finally{state.loading=false;el('refreshTrips').disabled=false;el('refreshEvents').disabled=false;}}
 function distance(a,b){const r=Math.PI/180,lat1=a.lat*r,lat2=b.lat*r,dLat=lat2-lat1,dLon=(b.lon-a.lon)*r;const q=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));}
@@ -201,6 +228,8 @@ async function refreshCommands(){
   finally{el('refreshCommands').disabled=false;}
 }
 async function diagnostic(key){const button=document.querySelector(`[data-diag="${key}"]`);button.disabled=true;result('diagnosticResult','Submitting read-only diagnostic…');try{const data=await api('/api/diagnostic',{method:'POST',body:JSON.stringify({key})});result('diagnosticResult',`Queued successfully. ID: ${data.command?.id??'not returned'}. Wait for the next device connection, then refresh command history.`);await refreshCommands();}catch(err){result('diagnosticResult',err.message);}finally{button.disabled=false;}}
+const ONE_TAP_REMOTE_ACTIONS=new Set(['lock','unlock','flash']);
+let remoteActionBusy=false;
 const REMOTE_ACTION_UI={
   lock:{title:'Lock BMW doors?',icon:'🔒',confirm:'LOCK',description:'Lock the vehicle using CAN-CONTROL. Immediate GPRS command only.'},
   unlock:{title:'Unlock BMW doors?',icon:'🔓',confirm:'UNLOCK',description:'Unlocking grants access to the vehicle. Immediate GPRS command only.'},
@@ -216,17 +245,31 @@ function openConfirm(action){
   setText('dialogTitle',info.title);setText('dialogIcon',info.icon);setText('confirmWord',info.confirm);setText('dialogDesc',info.description+' No offline queueing. A command reply is not proof that the vehicle changed state.');
   el('confirmInput').value='';el('dialogSubmit').disabled=true;el('commandDialog').showModal();el('confirmInput').focus();
 }
-async function executeAction(){
-  const action=state.pendingAction,confirmation=remoteConfirmWord(action);if(!confirmation)return;
-  if(el('confirmInput').value.trim().toUpperCase()!==confirmation)return;
-  el('dialogSubmit').disabled=true;el('commandDialog').close();result('remoteResult',`Sending ${action} command…`);
-  try{const data=await api('/api/action',{method:'POST',body:JSON.stringify({action,confirm:confirmation})});
-    if(data.blocked) result('remoteResult',data.reason);
-    else result('remoteResult',`Device response: ${data.command?.response||'Command accepted; no explicit response shown.'}\n${data.note}`);
+async function executeAction(oneTapAction=null){
+  if(remoteActionBusy)return;
+  const direct=typeof oneTapAction==='string'&&ONE_TAP_REMOTE_ACTIONS.has(oneTapAction);
+  const action=direct?oneTapAction:state.pendingAction;
+  const confirmation=remoteConfirmWord(action);
+  if(!confirmation)return;
+  if(!direct&&el('confirmInput').value.trim().toUpperCase()!==confirmation)return;
+  remoteActionBusy=true;
+  document.querySelectorAll('.remote-button').forEach(b=>b.disabled=true);
+  if(!direct){el('dialogSubmit').disabled=true;el('commandDialog').close();}
+  result('remoteResult',`Sending ${action} command…`);
+  try{
+    const data=await api('/api/action',{method:'POST',body:JSON.stringify({action,confirm:confirmation})});
+    if(data.blocked)result('remoteResult',data.reason);
+    else result('remoteResult',`Device response: ${data.command?.response||'Command accepted; physical vehicle state not confirmed.'}\n${data.note}`);
   }catch(err){result('remoteResult',`Command NOT confirmed: ${err.message}`);}
-  finally{state.pendingAction=null;await loadDashboard();}
+  finally{
+    remoteActionBusy=false;
+    document.querySelectorAll('.remote-button').forEach(b=>b.disabled=false);
+    state.pendingAction=null;
+    // Avoid generating two new REST requests while the account is rate-limited.
+    if(hasSession())loadDashboard();
+  }
 }
-function navigate(name){state.screen=name;document.body.classList.toggle('f30-home-screen',name==='dashboard');document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings'){renderQuickMetricSettings();refreshTrustUI();}}
+function navigate(name){state.screen=name;document.body.classList.toggle('f30-home-screen',name==='dashboard');document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings'){renderQuickMetricSettings();refreshTrustUI();}if((name==='trips'||name==='events')&&hasSession())loadHistory(state.range);}
 function exportCsv(filename,rows){
   if(!rows.length){alert('No records in the currently loaded period.');return;}
   const keys=Array.from(new Set(rows.flatMap(r=>Object.keys(r))));
@@ -264,10 +307,10 @@ async function submitCustom(text,write=false){
   finally{btn.disabled=false;}
 }
 function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.nav)));
-  el('refreshDashboard').addEventListener('click',async()=>{await loadDashboard();await loadHistory(state.range);});
+  el('refreshDashboard').addEventListener('click',async()=>{await loadDashboard(true);await loadBatteryHistory(true);});
   el('refreshTrips').addEventListener('click',()=>loadHistory(state.range));el('refreshEvents').addEventListener('click',()=>loadHistory(state.range));
   document.querySelectorAll('[data-range]').forEach(btn=>btn.addEventListener('click',()=>{const days=Number(btn.dataset.range);state.range=days;document.querySelectorAll('[data-range]').forEach(x=>x.classList.toggle('selected',x===btn));loadHistory(days);}));
-  document.querySelectorAll('[data-command]').forEach(btn=>btn.addEventListener('click',()=>openConfirm(btn.dataset.command)));
+  document.querySelectorAll('[data-command]').forEach(btn=>btn.addEventListener('click',()=>{const action=btn.dataset.command;if(ONE_TAP_REMOTE_ACTIONS.has(action))executeAction(action);else openConfirm(action);}));
   el('confirmInput').addEventListener('input',e=>el('dialogSubmit').disabled=e.target.value.trim().toUpperCase()!==remoteConfirmWord(state.pendingAction));
   el('dialogSubmit').addEventListener('click',executeAction);el('commandDialog').addEventListener('close',()=>{state.pendingAction=null;});
   document.querySelectorAll('[data-diag]').forEach(btn=>btn.addEventListener('click',()=>diagnostic(btn.dataset.diag)));
@@ -302,9 +345,19 @@ function bind(){document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEven
   el('exportHistory').addEventListener('click',()=>exportCsv('f30-telemetry-history.csv',state.history));
   el('exportEvents').addEventListener('click',()=>exportCsv('f30-crash-events.csv',eventsFromMessages(state.history)));
   document.addEventListener('click',e=>{const b=e.target.closest('[data-point]');if(!b)return;const pts=b.dataset.point.split(',').map(Number);if(pts.length!==2||pts.some(x=>!Number.isFinite(x)))return;const url=`https://maps.apple.com/?ll=${pts[0]},${pts[1]}&q=Vehicle%20location`;window.open(url,'_blank','noopener,noreferrer');});
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadDashboard();});
-  setInterval(()=>{if(document.visibilityState==='visible'&&state.screen==='dashboard')loadDashboard();},90000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&hasSession())loadDashboard();});
+  setInterval(()=>{if(document.visibilityState==='visible'&&state.screen==='dashboard'&&hasSession())loadDashboard();},180000);
 }
-async function boot(){bind();setupPhotoSettings().catch(err=>console.warn('Photo settings:',err));await connect(async()=>{await loadDashboard();await loadHistory(1);});if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.4.9').catch(()=>{});}
+async function boot(){
+  bind();
+  setupPhotoSettings().catch(()=>{});
+  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js?v=1.5.0').catch(()=>{});
+  await connect(async()=>{
+    // A throttled network must not invalidate a successfully unlocked browser.
+    await loadDashboard();
+    if(state.screen==='dashboard')await loadBatteryHistory();
+    else if(state.screen==='trips'||state.screen==='events')await loadHistory(state.range);
+  });
+}
 boot();
 export const __test={eventsFromMessages,analyzeTrips,distance,routeSvg};
