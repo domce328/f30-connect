@@ -1,15 +1,21 @@
-F30 Connect v1.4.6 — Full Hero Background
+F30 Connect v1.4.7 — Full-Screen Studio Background
 
-This patch changes the hero section to use the full matching scene image instead of a separate cutout plus synthetic background.
-The result is that the surrounding background around the car matches the photo and fills the whole iPhone screen width.
+Fix: the car is part of a continuous full-screen studio background, instead of
+a rectangular image in the hero. This restores the normal iPhone car proportions
+and removes the visual photo edges.
 
-Replace these files in the repo root:
-- index.html
-- app.js
-- sw.js
-- f30-ui-v146.css
-- f30-scene-sleeping-v146.webp
-- f30-scene-online-v146.webp
-- f30-scene-ignition-v146.webp
+Files to upload directly to GitHub repository ROOT:
+index.html — REPLACE
+app.js — REPLACE
+sw.js — REPLACE
+f30-ui-v147.css — NEW
+f30-stage-offline-v147.webp — NEW
+f30-stage-online-v147.webp — NEW
+f30-stage-ignition-v147.webp — NEW
 
-Then commit, wait for GitHub Pages, hard refresh desktop, and reopen Safari / the PWA on iPhone.
+Keep your existing JS modules, manifest, and icons; do not delete old files.
+Do not upload a copy of the ZIP itself. Wait for GitHub Pages and refresh Safari.
+
+UI logic still uses Flespi connection and ignition telemetry. Lighting is an
+illustration, not an independently measured vehicle headlamp state.
+No telemetry, trips, diagnostic, command or metric settings logic was modified.

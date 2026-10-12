@@ -97,12 +97,10 @@ function renderHeroVisual(){
   if(!scene)return;
   const visual=currentVehicleVisualState();
   scene.dataset.visualState=visual;
+  document.body.dataset.carState=visual;
   const labels={sleeping:'Black BMW F30, all lights off',online:'Black BMW F30, angel eyes illuminated',ignition:'Black BMW F30, angel eyes and low beams illuminated'};
   scene.setAttribute('aria-label',labels[visual]);
-  // Only one image exists in the DOM. This avoids stacked images even if Safari holds stale CSS.
-  const target={sleeping:'f30-scene-sleeping-v146.webp',online:'f30-scene-online-v146.webp',ignition:'f30-scene-ignition-v146.webp'}[visual];
-  const image=el('carStateImage');
-  if(image && !image.getAttribute('src').endsWith('/'+target))image.setAttribute('src','./'+target);
+  // The full-width studio background includes the car; CSS selects one scene per state.
 }
 function renderStatus(){
   const pill=el('statusChip');
@@ -210,7 +208,7 @@ async function executeAction(){const action=state.pendingAction;if(!action)retur
     else result('remoteResult',`Device response: ${data.command?.response||'Command accepted; no explicit response shown.'}\n${data.note}`);
   }catch(err){result('remoteResult',`Command NOT confirmed: ${err.message}`);}
   finally{state.pendingAction=null;await loadDashboard();}}
-function navigate(name){state.screen=name;document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings')renderQuickMetricSettings();}
+function navigate(name){state.screen=name;document.body.classList.toggle('f30-home-screen',name==='dashboard');document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`${name}Screen`));document.querySelectorAll('.bottom-nav button').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});window.scrollTo({top:0,behavior:'smooth'});if(name==='diagnostics')refreshCommands();if(name==='settings')renderQuickMetricSettings();}
 function exportCsv(filename,rows){
   if(!rows.length){alert('No records in the currently loaded period.');return;}
   const keys=Array.from(new Set(rows.flatMap(r=>Object.keys(r))));
